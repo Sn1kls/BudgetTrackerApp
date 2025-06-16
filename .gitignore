@@ -1,0 +1,51 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.log
+*.env
+.env
+
+# Django
+*.pyc
+db.sqlite3
+/static/
+/media/
+
+# Swift / Xcode
+*.xcuserstate
+*.xcworkspace
+*.xcappdata/
+DerivedData/
+*.xcarchive
+build/
+*.ipa
+.swiftpm/
+Package.resolved
+
+# Archives
+*.zip
+
+# User data
+**/xcuserdata/
+
+# Xcode simulator and app data
+*.xcappdata/
+*.xcuserstate
+*.xcworkspace/
+**/xcuserdata/
+**/.DS_Store
+*.zip
+
+# Sim cache
+*.sqlite3
+*.plist
+*.ktx
+*.dyld4
+*.data
+*.lm
+*.savedState
+
