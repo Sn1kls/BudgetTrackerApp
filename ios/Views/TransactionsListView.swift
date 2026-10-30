@@ -1,37 +1,37 @@
 import SwiftUI
 
 struct TransactionsListView: View {
-    @StateObject private var txVM       = TransactionsViewModel()
-    @StateObject private var accountsVM = AccountsViewModel()
+    @StateObject private var transactionsViewModel       = TransactionsViewModel()
+    @StateObject private var accountsViewModel = AccountsViewModel()
     @State private var showNewForm      = false
-    @State private var editingTx: Transaction?
+    @State private var editingTransaction: Transaction?
 
     var body: some View {
         NavigationView {
             List {
-                ForEach(txVM.transactions) { tx in
+                ForEach(transactionsViewModel.transactions) { transaction in
                     HStack {
-                        Text(tx.amount, format: .currency(code: "USD"))
+                        Text(transaction.amount, format: .currency(code: "USD"))
                         Spacer()
-                        Text(tx.typeDisplay)
+                        Text(transaction.typeDisplay)
                             .foregroundColor(.secondary)
                     }
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        editingTx = tx
+                        editingTransaction = transaction
                     }
                     .swipeActions(edge: .trailing) {
                         Button(role: .destructive) {
-                            Task { await txVM.deleteTransaction(tx) }
+                            Task { await transactionsViewModel.deleteTransaction(transaction) }
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
                     }
                 }
-                .onDelete { idxs in
-                    for idx in idxs {
-                        let tx = txVM.transactions[idx]
-                        Task { await txVM.deleteTransaction(tx) }
+                .onDelete { offsets in
+                    for index in offsets {
+                        let transaction = transactionsViewModel.transactions[index]
+                        Task { await transactionsViewModel.deleteTransaction(transaction) }
                     }
                 }
             }
@@ -46,21 +46,21 @@ struct TransactionsListView: View {
                 }
             }
             .sheet(isPresented: $showNewForm) {
-                TransactionFormView(viewModel: txVM)
-                    .environmentObject(accountsVM)
+                TransactionFormView(viewModel: transactionsViewModel)
+                    .environmentObject(accountsViewModel)
             }
-            .sheet(item: $editingTx) { tx in
-                TransactionFormView(viewModel: txVM, transaction: tx)
-                    .environmentObject(accountsVM)
+            .sheet(item: $editingTransaction) { transaction in
+                TransactionFormView(viewModel: transactionsViewModel, transaction: transaction)
+                    .environmentObject(accountsViewModel)
             }
             .task {
-                await accountsVM.fetchAccounts()
-                await txVM.fetchTransactions()
+                await accountsViewModel.fetchAccounts()
+                await transactionsViewModel.fetchTransactions()
             }
-            .alert("Error", isPresented: .constant(txVM.errorMessage != nil)) {
-                Button("OK") { txVM.errorMessage = nil }
+            .alert("Error", isPresented: .constant(transactionsViewModel.errorMessage != nil)) {
+                Button("OK") { transactionsViewModel.errorMessage = nil }
             } message: {
-                Text(txVM.errorMessage ?? "")
+                Text(transactionsViewModel.errorMessage ?? "")
             }
         }
     }

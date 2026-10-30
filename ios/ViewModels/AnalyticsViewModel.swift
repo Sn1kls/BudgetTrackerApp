@@ -6,7 +6,7 @@ final class AnalyticsViewModel: ObservableObject {
     // MARK: - Published
     @Published var accounts:       [AnalyticsAccount] = []
     @Published var overallBalance  : Double           = 0
-    @Published var recentTx        : [Transaction]    = []
+    @Published var recentTransactions        : [Transaction]    = []
     @Published var summary         : SummaryResponse?
     @Published var isLoading       : Bool  = false
     @Published var errorMessage    : String?
@@ -44,7 +44,7 @@ final class AnalyticsViewModel: ObservableObject {
             catch { print("⛔️ analytics decode error:", error); throw error }
         }()
         
-        async let txs: [Transaction] = {
+        async let transactions: [Transaction] = {
             do { return try await network.fetchTransactions() }
             catch { print("⛔️ transactions decode error:", error); throw error }
         }()
@@ -52,12 +52,12 @@ final class AnalyticsViewModel: ObservableObject {
         async let summary = fetchSummaryForSelectedPeriod()
 
         do {
-            let (aRes, allTx, sumRes) = try await (analytics, txs, summary)
-            print("👉 decoded overall =", aRes.overallBalance)
-            accounts       = aRes.accounts
-            overallBalance = aRes.overallBalance
-            recentTx       = allTx.sorted(by: { $0.date > $1.date }).prefix(5).map { $0 }
-            self.summary   = sumRes
+            let (analyticsResponse, allTransactions, summaryResponse) = try await (analytics, transactions, summary)
+            print("👉 decoded overall =", analyticsResponse.overallBalance)
+            accounts       = analyticsResponse.accounts
+            overallBalance = analyticsResponse.overallBalance
+            recentTransactions       = allTransactions.sorted(by: { $0.date > $1.date }).prefix(5).map { $0 }
+            self.summary   = summaryResponse
         } catch {
             errorMessage = error.localizedDescription
         }

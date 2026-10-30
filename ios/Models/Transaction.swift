@@ -14,30 +14,30 @@ struct Transaction: Codable, Identifiable {
     }
 
     init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let container = try decoder.container(keyedBy: CodingKeys.self)
 
-        id       = try c.decode(Int.self,    forKey: .id)
-        type     = try c.decode(String.self, forKey: .type)
-        _amount  = try LosslessDouble(from: c.superDecoder(forKey: .amount))
-        category = try c.decode(String.self, forKey: .category)        // backend returns "" rather than null
-        description = try c.decode(String.self, forKey: .description)
-        account  = try c.decode(Int.self,    forKey: .account)
+        id       = try container.decode(Int.self,    forKey: .id)
+        type     = try container.decode(String.self, forKey: .type)
+        _amount  = try LosslessDouble(from: container.superDecoder(forKey: .amount))
+        category = try container.decode(String.self, forKey: .category)        // backend returns "" rather than null
+        description = try container.decode(String.self, forKey: .description)
+        account  = try container.decode(Int.self,    forKey: .account)
 
         // ISO-8601 with a Z suffix
-        date = try ISO8601DateFormatter().date(from: c.decode(String.self, forKey: .date))
+        date = try ISO8601DateFormatter().date(from: container.decode(String.self, forKey: .date))
                ?? { throw DecodingError.dataCorruptedError(
-                        forKey: .date, in: c,
+                        forKey: .date, in: container,
                         debugDescription: "Bad ISO-8601") }()
     }
 
     func encode(to encoder: Encoder) throws {
-        var c = encoder.container(keyedBy: CodingKeys.self)
-        try c.encode(type, forKey: .type)
-        try c.encode(String(format: "%.2f", amount), forKey: .amount)
-        try c.encode(category,    forKey: .category)
-        try c.encode(description, forKey: .description)
-        try c.encode(account,     forKey: .account)
-        try c.encode(ISO8601DateFormatter().string(from: date), forKey: .date)
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(type, forKey: .type)
+        try container.encode(String(format: "%.2f", amount), forKey: .amount)
+        try container.encode(category,    forKey: .category)
+        try container.encode(description, forKey: .description)
+        try container.encode(account,     forKey: .account)
+        try container.encode(ISO8601DateFormatter().string(from: date), forKey: .date)
     }
 
     // convenience init for forms

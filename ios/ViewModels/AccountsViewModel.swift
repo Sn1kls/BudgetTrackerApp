@@ -40,8 +40,8 @@ class AccountsViewModel: ObservableObject {
 
         do {
             let updated = try await network.updateAccount(account)
-            if let idx = accounts.firstIndex(where: { $0.id == updated.id }) {
-                accounts[idx] = updated
+            if let index = accounts.firstIndex(where: { $0.id == updated.id }) {
+                accounts[index] = updated
             }
         } catch {
             errorMessage = error.localizedDescription

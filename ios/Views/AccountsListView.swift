@@ -1,18 +1,18 @@
 import SwiftUI
 
 struct AccountsListView: View {
-    @StateObject private var vm = AccountsViewModel()
+    @StateObject private var viewModel = AccountsViewModel()
     @State private var showForm = false
 
     var body: some View {
         NavigationView {
             Group {
-                if vm.isLoading {
+                if viewModel.isLoading {
                     ProgressView()
                 } else {
-                    List(vm.accounts) { acc in
-                        NavigationLink(acc.name) {
-                            AccountFormView(viewModel: vm, account: acc)
+                    List(viewModel.accounts) { account in
+                        NavigationLink(account.name) {
+                            AccountFormView(viewModel: viewModel, account: account)
                         }
                     }
                 }
@@ -24,13 +24,13 @@ struct AccountsListView: View {
                 }
             }
             .sheet(isPresented: $showForm) {
-                AccountFormView(viewModel: vm)
+                AccountFormView(viewModel: viewModel)
             }
-            .task { await vm.fetchAccounts() }
-            .alert("Error", isPresented: .constant(vm.errorMessage != nil), actions: {
-                Button("OK") { vm.errorMessage = nil }
+            .task { await viewModel.fetchAccounts() }
+            .alert("Error", isPresented: .constant(viewModel.errorMessage != nil), actions: {
+                Button("OK") { viewModel.errorMessage = nil }
             }, message: {
-                Text(vm.errorMessage ?? "")
+                Text(viewModel.errorMessage ?? "")
             })
         }
     }

@@ -1,32 +1,32 @@
 import SwiftUI
 
 struct AnalyticsView: View {
-    @StateObject private var vm = AnalyticsViewModel()
+    @StateObject private var viewModel = AnalyticsViewModel()
 
     var body: some View {
         NavigationView {
             VStack {
                 periodSelector
-                if vm.selectedPeriod == .custom { customDatePickers }
-                Button("Refresh") { Task { await vm.fetch() } }
+                if viewModel.selectedPeriod == .custom { customDatePickers }
+                Button("Refresh") { Task { await viewModel.fetch() } }
                     .buttonStyle(.borderedProminent)
                     .padding(.bottom, 8)
 
                 content
             }
             .navigationTitle("Analytics")
-            .task { await vm.fetch() }
-            .alert("Error", isPresented: .constant(vm.errorMessage != nil)) {
-                Button("OK") { vm.errorMessage = nil }
+            .task { await viewModel.fetch() }
+            .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
+                Button("OK") { viewModel.errorMessage = nil }
             } message: {
-                Text(vm.errorMessage ?? "")
+                Text(viewModel.errorMessage ?? "")
             }
         }
     }
 
     // MARK: - UI blocks
     private var periodSelector: some View {
-        Picker("Period", selection: $vm.selectedPeriod) {
+        Picker("Period", selection: $viewModel.selectedPeriod) {
             ForEach(AnalyticsViewModel.SummaryPeriod.allCases) {
                 Text($0.title).tag($0)
             }
@@ -37,8 +37,8 @@ struct AnalyticsView: View {
 
     private var customDatePickers: some View {
         HStack {
-            DatePicker("Start", selection: $vm.customStart, displayedComponents: .date)
-            DatePicker("End",   selection: $vm.customEnd,   displayedComponents: .date)
+            DatePicker("Start", selection: $viewModel.customStart, displayedComponents: .date)
+            DatePicker("End",   selection: $viewModel.customEnd,   displayedComponents: .date)
         }
         .datePickerStyle(.compact)
         .padding(.horizontal)
@@ -46,7 +46,7 @@ struct AnalyticsView: View {
 
     @ViewBuilder
     private var content: some View {
-        if vm.isLoading {
+        if viewModel.isLoading {
             Spacer(); ProgressView("Loading…"); Spacer()
         } else {
             List {
@@ -63,7 +63,7 @@ struct AnalyticsView: View {
         Section("Total Balance") {
             HStack {
                 Spacer()
-                Text(vm.overallBalance, format: .currency(code: "USD"))
+                Text(viewModel.overallBalance, format: .currency(code: "USD"))
                     .font(.title2).foregroundColor(.blue)
                 Spacer()
             }
@@ -72,11 +72,11 @@ struct AnalyticsView: View {
 
     private var accountsSection: some View {
         Section("By Account") {
-            ForEach(vm.accounts) { acc in
+            ForEach(viewModel.accounts) { account in
                 HStack {
-                    Text(acc.name)
+                    Text(account.name)
                     Spacer()
-                    Text(acc.balance, format: .currency(code: "USD"))
+                    Text(account.balance, format: .currency(code: "USD"))
                 }
             }
         }
@@ -84,12 +84,12 @@ struct AnalyticsView: View {
 
     private var summarySection: some View {
         Group {
-            if let s = vm.summary {
-                Section(vm.selectedPeriod.title.capitalized) {
-                    summaryRow("Income",  s.incomeSum,  .green)
-                    summaryRow("Expense", s.expenseSum, .red)
-                    summaryRow("Net",     s.netSum,
-                               s.netSum >= 0 ? .green : .red, bold: true)
+            if let summary = viewModel.summary {
+                Section(viewModel.selectedPeriod.title.capitalized) {
+                    summaryRow("Income",  summary.incomeSum,  .green)
+                    summaryRow("Expense", summary.expenseSum, .red)
+                    summaryRow("Net",     summary.netSum,
+                               summary.netSum >= 0 ? .green : .red, bold: true)
                 }
             }
         }
@@ -97,20 +97,20 @@ struct AnalyticsView: View {
 
     private var recentSection: some View {
         Group {
-            if !vm.recentTx.isEmpty {
+            if !viewModel.recentTransactions.isEmpty {
                 Section("Recent Transactions") {
-                    ForEach(vm.recentTx) { tx in
+                    ForEach(viewModel.recentTransactions) { transaction in
                         HStack {
                             Image(systemName: "banknote.fill")
-                                .foregroundColor(tx.type == "EX" ? .red : .green)
+                                .foregroundColor(transaction.type == "EX" ? .red : .green)
                             VStack(alignment: .leading) {
-                                Text(tx.category)
-                                Text(tx.date, format: .dateTime.year().month().day())
+                                Text(transaction.category)
+                                Text(transaction.date, format: .dateTime.year().month().day())
                                     .font(.caption).foregroundColor(.secondary)
                             }
                             Spacer()
-                            Text(tx.amount, format: .currency(code: "USD"))
-                                .foregroundColor(tx.type == "EX" ? .red : .green)
+                            Text(transaction.amount, format: .currency(code: "USD"))
+                                .foregroundColor(transaction.type == "EX" ? .red : .green)
                         }
                     }
                 }

@@ -2,21 +2,21 @@ import SwiftUI
 
 @main
 struct BudgetTrackerApp: App {
-    @StateObject private var authVM = AuthViewModel()
+    @StateObject private var authViewModel = AuthViewModel()
 
     /// Runs once at launch
     init() {
         // Catch uncaught Foundation/Obj-C exceptions
-        NSSetUncaughtExceptionHandler { exc in
-            print("💥 Uncaught exception:", exc)
-            print("💥 Stack trace:\n", exc.callStackSymbols.joined(separator: "\n"))
+        NSSetUncaughtExceptionHandler { exception in
+            print("💥 Uncaught exception:", exception)
+            print("💥 Stack trace:\n", exception.callStackSymbols.joined(separator: "\n"))
         }
     }
 
     var body: some Scene {
         WindowGroup {
             RootView()
-                .environmentObject(authVM)
+                .environmentObject(authViewModel)
         }
     }
 }

@@ -19,15 +19,15 @@ struct AnalyticsAccount: Codable, Identifiable {
     enum CodingKeys: String, CodingKey { case id, name, balance }
 
     init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        id   = try c.decode(Int.self,    forKey: .id)
-        name = try c.decode(String.self, forKey: .name)
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id   = try container.decode(Int.self,    forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
 
-        if let dbl = try? c.decode(Double.self, forKey: .balance) {
-            balance = dbl
+        if let decodedDouble = try? container.decode(Double.self, forKey: .balance) {
+            balance = decodedDouble
         } else {
-            let s = try c.decode(String.self, forKey: .balance)
-            balance = parseDouble(s)
+            let balanceText = try container.decode(String.self, forKey: .balance)
+            balance = parseDouble(balanceText)
         }
     }
 }
@@ -43,16 +43,16 @@ struct AnalyticsResponse: Codable {
     }
 
     init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let container = try decoder.container(keyedBy: CodingKeys.self)
 
         // accounts are optional
-        accounts = (try? c.decode([AnalyticsAccount].self,
+        accounts = (try? container.decode([AnalyticsAccount].self,
                                   forKey: .accounts)) ?? []
 
         // overall_balance may be a string or a number
-        if let dbl = try? c.decode(Double.self, forKey: .overallBalance) {
-            overallBalance = dbl
-        } else if let str = try? c.decode(String.self,
+        if let decodedDouble = try? container.decode(Double.self, forKey: .overallBalance) {
+            overallBalance = decodedDouble
+        } else if let str = try? container.decode(String.self,
                                          forKey: .overallBalance) {
             overallBalance = parseDouble(str)
         } else {

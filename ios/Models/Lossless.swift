@@ -6,10 +6,10 @@ struct LosslessDouble: Codable {
     init(wrappedValue: Double) { self.wrappedValue = wrappedValue }
 
     init(from decoder: Decoder) throws {
-        let c = try decoder.singleValueContainer()
-        if let d = try? c.decode(Double.self)               { wrappedValue = d; return }
-        if let s = try? c.decode(String.self), let d = Double(s) {
-            wrappedValue = d; return
+        let container = try decoder.singleValueContainer()
+        if let number = try? container.decode(Double.self)               { wrappedValue = number; return }
+        if let text = try? container.decode(String.self), let number = Double(text) {
+            wrappedValue = number; return
         }
         throw DecodingError.typeMismatch(
             Double.self,
@@ -18,7 +18,7 @@ struct LosslessDouble: Codable {
         )
     }
     func encode(to encoder: Encoder) throws {
-        var c = encoder.singleValueContainer()
-        try c.encode(wrappedValue)
+        var container = encoder.singleValueContainer()
+        try container.encode(wrappedValue)
     }
 }

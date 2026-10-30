@@ -21,20 +21,20 @@ struct SummaryResponse: Codable {
     }
 
     init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let container = try decoder.container(keyedBy: CodingKeys.self)
 
         _incomeSum  = (try? LosslessDouble(from:
-                          c.superDecoder(forKey: .incomeSum)))
+                          container.superDecoder(forKey: .incomeSum)))
                    ?? LosslessDouble(wrappedValue: 0)
 
         _expenseSum = (try? LosslessDouble(from:
-                          c.superDecoder(forKey: .expenseSum)))
+                          container.superDecoder(forKey: .expenseSum)))
                    ?? LosslessDouble(wrappedValue: 0)
 
         _netSum     = (try? LosslessDouble(from:
-                          c.superDecoder(forKey: .netSum)))
+                          container.superDecoder(forKey: .netSum)))
                    ?? LosslessDouble(wrappedValue: 0)
 
-        currency = try? c.decodeIfPresent(String.self, forKey: .currency)
+        currency = try? container.decodeIfPresent(String.self, forKey: .currency)
     }
 }
