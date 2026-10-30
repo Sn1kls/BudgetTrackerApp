@@ -59,3 +59,10 @@ def test_register_rejects_weak_password(api_client, password):
     assert resp.status_code == 400
     assert "password" in resp.json()
     assert not User.objects.filter(username="maria").exists()
+
+
+@pytest.mark.django_db
+def test_swagger_schema_builds_without_errors(api_client, caplog):
+    resp = api_client.get("/swagger/?format=openapi")
+    assert resp.status_code == 200
+    assert "raised exception during schema generation" not in caplog.text

@@ -76,6 +76,8 @@ class AccountViewSet(viewsets.ModelViewSet):
     serializer_class = AccountSerializer
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Account.objects.none()
         return Account.objects.filter(owner=self.request.user)
 
     def perform_create(self, serializer):
@@ -86,6 +88,8 @@ class TransactionViewSet(viewsets.ModelViewSet):
     serializer_class = TransactionSerializer
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Transaction.objects.none()
         return Transaction.objects.filter(account__owner=self.request.user)
 
 
