@@ -1,5 +1,4 @@
-from datetime import datetime, date, timedelta
-from calendar import monthrange
+from datetime import date, timedelta
 
 from django.db.models import Sum
 from rest_framework import viewsets, permissions, status
@@ -131,16 +130,21 @@ def analytics_summary(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
     try:
-        dt_start = datetime.fromisoformat(start)
-        dt_end = datetime.fromisoformat(end)
+        start_date = date.fromisoformat(start)
+        end_date = date.fromisoformat(end)
     except ValueError:
         return Response(
             {"detail": "Dates must be ISO-8601, e.g. 2025-06-01"},
             status=status.HTTP_400_BAD_REQUEST,
         )
+    if account_id and not account_id.isdigit():
+        return Response(
+            {"detail": "`account_id` must be a number"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
-    # Filter by the user-set date, not the creation timestamp.
-    qs = qs.filter(date__gte=dt_start, date__lte=dt_end)
+    # Filter by the user-set date, not the creation timestamp. Both ends are inclusive.
+    qs = qs.filter(date__date__range=(start_date, end_date))
     if account_id:
         qs = qs.filter(account_id=account_id)
 
@@ -161,13 +165,10 @@ def analytics_summary(request):
 
     if group_by == "month":
         details = []
-        year = dt_start.year
+        year = start_date.year
         for m in range(1, 13):
-            first = datetime(year, m, 1)
-            last_day = monthrange(year, m)[1]
-            last = datetime(year, m, last_day, 23, 59, 59)
             subqs = Transaction.objects.filter(
-                account__owner=request.user, date__gte=first, date__lte=last
+                account__owner=request.user, date__year=year, date__month=m
             )
             if account_id:
                 subqs = subqs.filter(account_id=account_id)
