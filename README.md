@@ -103,10 +103,14 @@ To use a real iPhone, the API has to be reachable from the phone:
 ## What I'd improve
 
 - **Balance model.** The balance is stored on the account and can also be edited
-  directly through the API. A cleaner design would derive it from transactions or
-  only allow an opening balance.
-- **Analytics.** `group_by=month` runs two queries per month; one grouped query
-  (`TruncMonth`) would do. The currency is hard-coded to USD.
+  directly through the API. Editing an account in the app sends back the balance
+  it loaded earlier, which can overwrite changes made by transactions in between.
+  Two simultaneous edits of the same transaction can also leave the balance off.
+  A cleaner design would derive the balance from transactions or only allow an
+  opening balance.
+- **Analytics.** `group_by=month` always returns the 12 months of the start
+  date's year, whatever the range, and runs two queries per month; one grouped
+  query (`TruncMonth`) would do. The currency is hard-coded to USD.
 - **API.** No pagination on list endpoints. Email is not required to be unique.
   The successful logout and the `period=` shortcuts have no tests yet.
 - **Deployment.** Docker runs Django's development server. A real deployment would
