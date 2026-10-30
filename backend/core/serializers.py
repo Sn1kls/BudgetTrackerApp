@@ -18,7 +18,6 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 class AccountSerializer(serializers.ModelSerializer):
-    # balance — завжди рядок з двома знаками
     balance = serializers.DecimalField(
         max_digits=12, decimal_places=2, coerce_to_string=True
     )
@@ -30,14 +29,13 @@ class AccountSerializer(serializers.ModelSerializer):
 
 
 class TransactionSerializer(serializers.ModelSerializer):
-    # date — завжди ISO-8601 UTC з “Z” у кінці
+    # The iOS client parses dates as ISO-8601 UTC with a trailing "Z".
     date = serializers.DateTimeField(
         format="%Y-%m-%dT%H:%M:%SZ",
         input_formats=["%Y-%m-%dT%H:%M:%SZ", "iso-8601"],
         default_timezone=timezone.utc,
     )
 
-    # amount — завжди рядок
     amount = serializers.DecimalField(
         max_digits=12,
         decimal_places=2,
@@ -45,7 +43,7 @@ class TransactionSerializer(serializers.ModelSerializer):
         min_value=Decimal("0.01"),
     )
 
-    # optional поля — не null, а порожній рядок
+    # Optional text fields come back as "" rather than null.
     category = serializers.CharField(allow_blank=True, default="")
     description = serializers.CharField(allow_blank=True, default="")
 

@@ -1,4 +1,3 @@
-# core/tests/conftest.py
 import pytest
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -7,13 +6,10 @@ from core.tests.factories import UserFactory
 
 @pytest.fixture
 def user(db):
-    return UserFactory()  # пароль “pass1234” as per factory
+    return UserFactory()  # password: pass1234
 
 @pytest.fixture
 def auth_client(db, user):
-    """
-    Клієнт уже залогінений – даємо дійсний access token
-    """
     client = APIClient()
     access = RefreshToken.for_user(user).access_token
     client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
@@ -21,16 +17,10 @@ def auth_client(db, user):
 
 @pytest.fixture
 def api_client():
-    """
-    Простіший APIClient без токена – для реєстрації / логіну
-    """
     return APIClient()
 
 @pytest.fixture
 def expired_client(db, user):
-    """
-    Клієнт із простроченим токеном
-    """
     client = APIClient()
     token = RefreshToken.for_user(user).access_token
     token.set_exp(lifetime=timedelta(days=-1))
