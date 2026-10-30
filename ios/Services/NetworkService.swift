@@ -1,259 +1,260 @@
 import Foundation
 
-enum NetworkError: Error {
+enum NetworkError: LocalizedError {
     case badResponse
-    case statusCode(Int)
+    case sessionExpired
+    case statusCode(Int, message: String?)
+
+    var errorDescription: String? {
+        switch self {
+        case .badResponse:
+            return "Unexpected response from the server."
+        case .sessionExpired:
+            return "Your session has expired. Please sign in again."
+        case let .statusCode(code, message):
+            return message ?? "Request failed (HTTP \(code))."
+        }
+    }
+
+    /// Collects the messages from a DRF error body, e.g. {"password": ["Too short."]}.
+    static func message(from data: Data) -> String? {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return nil
+        }
+        let messages = json.keys.sorted().flatMap { key -> [String] in
+            if let list = json[key] as? [String] { return list }
+            if let text = json[key] as? String { return [text] }
+            return []
+        }
+        return messages.isEmpty ? nil : messages.joined(separator: "\n")
+    }
 }
 
-// MARK: - Singleton
-final class NetworkService {
+extension Notification.Name {
+    static let sessionExpired = Notification.Name("sessionExpired")
+}
+
+// An actor, so parallel requests that hit 401 share one token refresh.
+actor NetworkService {
     static let shared = NetworkService()
     private init(session: URLSession = .shared) { self.session = session }
 
     // MARK: - Private
     private let session: URLSession
+    private var refreshTask: Task<Void, Error>?
     private let decoder: JSONDecoder = {
-        let d = JSONDecoder()
-        d.keyDecodingStrategy = .convertFromSnakeCase
-        d.dateDecodingStrategy = .iso8601
-        return d
+        let configuredDecoder = JSONDecoder()
+        configuredDecoder.keyDecodingStrategy = .convertFromSnakeCase
+        configuredDecoder.dateDecodingStrategy = .iso8601
+        return configuredDecoder
     }()
     private let encoder: JSONEncoder = {
-        let e = JSONEncoder()
-        e.keyEncodingStrategy = .convertToSnakeCase
-        e.dateEncodingStrategy = .iso8601
-        return e
+        let configuredEncoder = JSONEncoder()
+        configuredEncoder.keyEncodingStrategy = .convertToSnakeCase
+        configuredEncoder.dateEncodingStrategy = .iso8601
+        return configuredEncoder
     }()
-    private var accessToken: String? { KeychainManager.shared.getAccessToken() }
 
     // MARK: - Request helper
     private func request(
         path: String,
         method: String = "GET",
+        query: [URLQueryItem] = [],
         body: Data? = nil,
-        authenticated: Bool = false
-    ) async throws -> (Data, HTTPURLResponse)
-    {
-        let url = APIConfig.baseURL.appendingPathComponent(path)
-        var req = URLRequest(url: url)
-        req.httpMethod = method
-        req.setValue("application/json", forHTTPHeaderField: "Accept")
-        if let body { req.httpBody = body
-            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        authenticated: Bool = false,
+        retryOnUnauthorized: Bool = true
+    ) async throws -> Data {
+        var components = URLComponents(
+            url: APIConfig.baseURL.appendingPathComponent(path),
+            resolvingAgainstBaseURL: false
+        )!
+        if !query.isEmpty { components.queryItems = query }
+        guard let url = components.url else { throw NetworkError.badResponse }
+
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = method
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Accept")
+        if let body {
+            urlRequest.httpBody = body
+            urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
-        if authenticated, let tok = accessToken {
-            req.setValue("Bearer \(tok)", forHTTPHeaderField: "Authorization")
+        if authenticated, let token = KeychainManager.shared.getAccessToken() {
+            urlRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
         #if DEBUG
         print("▶️ \(method) \(url.absoluteString)")
         #endif
 
-        let (data, resp) = try await session.data(for: req)
-        guard let http = resp as? HTTPURLResponse else { throw NetworkError.badResponse }
-        return (data, http)
+        let (data, response) = try await session.data(for: urlRequest)
+        guard let httpResponse = response as? HTTPURLResponse else { throw NetworkError.badResponse }
+
+        if httpResponse.statusCode == 401, authenticated, retryOnUnauthorized {
+            try await refreshAccessToken()
+            return try await request(
+                path: path, method: method, query: query, body: body,
+                authenticated: true, retryOnUnauthorized: false
+            )
+        }
+        guard (200..<300).contains(httpResponse.statusCode) else {
+            throw NetworkError.statusCode(httpResponse.statusCode, message: NetworkError.message(from: data))
+        }
+        return data
+    }
+
+    private func refreshAccessToken() async throws {
+        if let refreshTask { return try await refreshTask.value }
+
+        let task = Task {
+            guard let refresh = KeychainManager.shared.getRefreshToken() else {
+                throw NetworkError.sessionExpired
+            }
+            let tokens = try await refreshToken(refresh: refresh)
+            KeychainManager.shared.saveAccessToken(tokens.access)
+            // The backend rotates refresh tokens and blacklists the old one.
+            if let newRefresh = tokens.refresh {
+                KeychainManager.shared.saveRefreshToken(newRefresh)
+            }
+        }
+        refreshTask = task
+        defer { refreshTask = nil }
+
+        do {
+            try await task.value
+        } catch NetworkError.statusCode(401, _), NetworkError.sessionExpired {
+            // Only a rejected refresh token ends the session, not e.g. a lost connection.
+            KeychainManager.shared.deleteTokens()
+            await MainActor.run {
+                NotificationCenter.default.post(name: .sessionExpired, object: nil)
+            }
+            throw NetworkError.sessionExpired
+        }
     }
 
     // MARK: - Decoding
-    private func decode<T: Decodable>(
-        _ type: T.Type,
-        from data: Data,
-        label: String
-    ) throws -> T
-    {
-        do { return try decoder.decode(type, from: data) }
-        catch {
-            print("📦 RAW \(label):\n", String(data: data, encoding: .utf8) ?? "<non-UTF8>")
-            print("⛔️ DECODE \(label) error:", error)
+    private func decode<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
+        do {
+            return try decoder.decode(type, from: data)
+        } catch {
+            #if DEBUG
+            print("⛔️ Decoding \(T.self) failed:", error)
+            #endif
             throw error
         }
+    }
+
+    private func json(_ object: [String: Any]) throws -> Data {
+        try JSONSerialization.data(withJSONObject: object)
     }
 
     // MARK: - Auth
     func login(username: String, password: String) async throws -> TokenObtainPair {
-        let body = try JSONSerialization.data(withJSONObject:
-                    ["username": username, "password": password])
-        let (data, resp) = try await request(
-            path: "login/", method: "POST", body: body
+        let data = try await request(
+            path: "login/", method: "POST",
+            body: json(["username": username, "password": password])
         )
-        guard (200..<300).contains(resp.statusCode) else {
-            throw NetworkError.statusCode(resp.statusCode)
-        }
-        return try decoder.decode(TokenObtainPair.self, from: data)
+        return try decode(TokenObtainPair.self, from: data)
     }
 
     func register(username: String, email: String, password: String) async throws -> RegisterResponse {
         let payload = RegisterRequest(username: username, email: email, password: password)
-        let body = try encoder.encode(payload)
-        let (data, resp) = try await request(
-            path: "register/", method: "POST", body: body
-        )
-        guard (200..<300).contains(resp.statusCode) else {
-            throw NetworkError.statusCode(resp.statusCode)
-        }
-        return try decoder.decode(RegisterResponse.self, from: data)
+        let data = try await request(path: "register/", method: "POST", body: encoder.encode(payload))
+        return try decode(RegisterResponse.self, from: data)
     }
 
     func refreshToken(refresh: String) async throws -> TokenRefresh {
-        let body = try JSONSerialization.data(withJSONObject: ["refresh": refresh])
-        let (data, resp) = try await request(
-            path: "token/refresh/", method: "POST", body: body
+        let data = try await request(
+            path: "token/refresh/", method: "POST", body: json(["refresh": refresh])
         )
-        guard (200..<300).contains(resp.statusCode) else {
-            throw NetworkError.statusCode(resp.statusCode)
-        }
-        return try decoder.decode(TokenRefresh.self, from: data)
+        return try decode(TokenRefresh.self, from: data)
     }
 
     func logout(refresh: String) async throws {
-        let body = try JSONSerialization.data(withJSONObject: ["refresh": refresh])
-        let (_, resp) = try await request(
-            path: "logout/", method: "POST", body: body, authenticated: true
+        _ = try await request(
+            path: "logout/", method: "POST",
+            body: json(["refresh": refresh]), authenticated: true
         )
-        guard (200..<300).contains(resp.statusCode) else {
-            throw NetworkError.statusCode(resp.statusCode)
-        }
     }
 
     // MARK: - Accounts
     func fetchAccounts() async throws -> [Account] {
-        let (data, resp) = try await request(path: "accounts/", authenticated: true)
-        guard (200..<300).contains(resp.statusCode) else {
-            throw NetworkError.statusCode(resp.statusCode)
-        }
-        return try decoder.decode([Account].self, from: data)
+        let data = try await request(path: "accounts/", authenticated: true)
+        return try decode([Account].self, from: data)
     }
 
     func createAccount(_ account: Account) async throws -> Account {
-        let body = try JSONSerialization.data(withJSONObject: [
-            "name": account.name, "balance": account.balance
-        ])
-        let (data, resp) = try await request(
-            path: "accounts/", method: "POST", body: body, authenticated: true
+        let data = try await request(
+            path: "accounts/", method: "POST",
+            body: json(["name": account.name, "balance": account.balance]),
+            authenticated: true
         )
-        guard (200..<300).contains(resp.statusCode) else {
-            throw NetworkError.statusCode(resp.statusCode)
-        }
-        return try decoder.decode(Account.self, from: data)
+        return try decode(Account.self, from: data)
     }
 
     func updateAccount(_ account: Account) async throws -> Account {
-        let body = try JSONSerialization.data(withJSONObject: [
-            "name": account.name, "balance": account.balance
-        ])
-        let (data, resp) = try await request(
+        let data = try await request(
             path: "accounts/\(account.id)/", method: "PUT",
-            body: body, authenticated: true
+            body: json(["name": account.name, "balance": account.balance]),
+            authenticated: true
         )
-        guard (200..<300).contains(resp.statusCode) else {
-            throw NetworkError.statusCode(resp.statusCode)
-        }
-        return try decoder.decode(Account.self, from: data)
+        return try decode(Account.self, from: data)
     }
 
     // MARK: - Transactions
     func fetchTransactions() async throws -> [Transaction] {
-        let (data, resp) = try await request(path: "transactions/", authenticated: true)
-        guard (200..<300).contains(resp.statusCode) else {
-            throw NetworkError.statusCode(resp.statusCode)
-        }
-
-        do {
-            return try decoder.decode([Transaction].self, from: data)
-        } catch {
-            print("RAW transactions JSON:\n", String(data: data, encoding: .utf8) ?? "<nil>")
-            print("DECODE error:", error)
-            throw error
-        }
+        let data = try await request(path: "transactions/", authenticated: true)
+        return try decode([Transaction].self, from: data)
     }
 
-    func createTransaction(_ tx: Transaction) async throws -> Transaction {
-        let iso = ISO8601DateFormatter().string(from: tx.date)
-        let body = try JSONSerialization.data(withJSONObject: [
-            "account": tx.account, "type": tx.type, "amount": tx.amount,
-            "category": tx.category, "description": tx.description, "date": iso
-        ])
-        let (data, resp) = try await request(
+    func createTransaction(_ transaction: Transaction) async throws -> Transaction {
+        let data = try await request(
             path: "transactions/", method: "POST",
-            body: body, authenticated: true
+            body: json(transactionBody(transaction)), authenticated: true
         )
-        guard (200..<300).contains(resp.statusCode) else {
-            throw NetworkError.statusCode(resp.statusCode)
-        }
-        return try decoder.decode(Transaction.self, from: data)
+        return try decode(Transaction.self, from: data)
     }
 
-    func updateTransaction(_ tx: Transaction) async throws -> Transaction {
-        let iso = ISO8601DateFormatter().string(from: tx.date)
-        let body = try JSONSerialization.data(withJSONObject: [
-            "account": tx.account, "type": tx.type, "amount": tx.amount,
-            "category": tx.category, "description": tx.description, "date": iso
-        ])
-        let (data, resp) = try await request(
-            path: "transactions/\(tx.id)/", method: "PUT",
-            body: body, authenticated: true
+    func updateTransaction(_ transaction: Transaction) async throws -> Transaction {
+        let data = try await request(
+            path: "transactions/\(transaction.id)/", method: "PUT",
+            body: json(transactionBody(transaction)), authenticated: true
         )
-        guard (200..<300).contains(resp.statusCode) else {
-            throw NetworkError.statusCode(resp.statusCode)
-        }
-        return try decoder.decode(Transaction.self, from: data)
+        return try decode(Transaction.self, from: data)
     }
 
     func deleteTransaction(id: Int) async throws {
-        let (_, resp) = try await request(
-            path: "transactions/\(id)/", method: "DELETE", authenticated: true
-        )
-        guard (200..<300).contains(resp.statusCode) else {
-            throw NetworkError.statusCode(resp.statusCode)
-        }
+        _ = try await request(path: "transactions/\(id)/", method: "DELETE", authenticated: true)
     }
 
-    // MARK: - Analytics (legacy endpoint)
+    private func transactionBody(_ transaction: Transaction) -> [String: Any] {
+        [
+            "account": transaction.account, "type": transaction.type, "amount": transaction.amount,
+            "category": transaction.category, "description": transaction.description,
+            "date": ISO8601DateFormatter().string(from: transaction.date),
+        ]
+    }
+
+    // MARK: - Analytics
     func fetchAnalytics() async throws -> AnalyticsResponse {
-            let (data, resp) = try await request(path: "analytics/", authenticated: true)
-            guard (200..<300).contains(resp.statusCode) else {
-                throw NetworkError.statusCode(resp.statusCode)
-            }
-            print("📦 Raw analytics bytes:", data.count,
-                  String(data: data, encoding: .utf8) ?? "<non-UTF8>")
-            return try decode(AnalyticsResponse.self, from: data, label: "analytics")
+        let data = try await request(path: "analytics/", authenticated: true)
+        return try decode(AnalyticsResponse.self, from: data)
     }
 
-
-    // MARK: - Analytics summary
     /// period=this_month / this_week, or start+end (YYYY-MM-DD)
     func fetchSummary(period: String? = "this_month",
-                          start: Date? = nil,
-                          end: Date? = nil) async throws -> SummaryResponse
-        {
-            var comps = URLComponents(url: APIConfig.baseURL, resolvingAgainstBaseURL: false)!
-            comps.path += "/analytics/summary/"
-            if let p = period {
-                comps.queryItems = [ .init(name: "period", value: p) ]
-            } else if let s = start, let e = end {
-                let df = ISO8601DateFormatter(); df.formatOptions = [.withFullDate]
-                comps.queryItems = [
-                    .init(name: "start", value: df.string(from: s)),
-                    .init(name: "end",   value: df.string(from: e))
-                ]
-            }
-            guard let url = comps.url else { throw NetworkError.badResponse }
-
-            var req = URLRequest(url: url)
-            req.setValue("application/json", forHTTPHeaderField: "Accept")
-            if let tok = accessToken {
-                req.setValue("Bearer \(tok)", forHTTPHeaderField: "Authorization")
-            }
-
-            #if DEBUG
-            print("▶️ GET \(url.absoluteString)")
-            #endif
-
-            let (data, resp) = try await session.data(for: req)
-            guard let http = resp as? HTTPURLResponse,
-                  (200..<300).contains(http.statusCode) else {
-                throw NetworkError.statusCode((resp as? HTTPURLResponse)?.statusCode ?? -1)
-            }
-            return try decode(SummaryResponse.self, from: data, label: "summary")
+                      start: Date? = nil,
+                      end: Date? = nil) async throws -> SummaryResponse
+    {
+        var query: [URLQueryItem] = []
+        if let period {
+            query = [URLQueryItem(name: "period", value: period)]
+        } else if let start, let end {
+            query = [
+                URLQueryItem(name: "start", value: start.apiDay),
+                URLQueryItem(name: "end", value: end.apiDay),
+            ]
         }
+        let data = try await request(path: "analytics/summary/", query: query, authenticated: true)
+        return try decode(SummaryResponse.self, from: data)
     }
+}

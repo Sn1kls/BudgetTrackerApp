@@ -26,11 +26,11 @@ struct Account: Codable, Identifiable, Equatable, Hashable {
     }
 
     init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        id      = try c.decode(Int.self,    forKey: .id)
-        name    = try c.decode(String.self, forKey: .name)
-        owner   = try c.decode(Int.self,    forKey: .owner)
-        let balString = try c.decode(String.self, forKey: .balance)
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id      = try container.decode(Int.self,    forKey: .id)
+        name    = try container.decode(String.self, forKey: .name)
+        owner   = try container.decode(Int.self,    forKey: .owner)
+        let balString = try container.decode(String.self, forKey: .balance)
         balance = Double(balString) ?? 0
     }
 }
@@ -44,6 +44,7 @@ struct TokenObtainPair: Codable {
 
 struct TokenRefresh: Codable {
     let access: String
+    let refresh: String?
 }
 
 struct RegisterRequest: Codable {

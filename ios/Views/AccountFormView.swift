@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct AccountFormView: View {
-    @Environment(\.presentationMode) var pm
+    @Environment(\.presentationMode) var presentationMode
     @ObservedObject var viewModel: AccountsViewModel
     var account: Account?
 
@@ -30,7 +30,7 @@ struct AccountFormView: View {
             .navigationTitle(account == nil ? "New Account" : "Edit Account")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { pm.wrappedValue.dismiss() }
+                    Button("Cancel") { presentationMode.wrappedValue.dismiss() }
                 }
             }
             .alert("Error",
@@ -41,27 +41,27 @@ struct AccountFormView: View {
     }
 
     private func save() {
-        guard !name.isEmpty, let bal = Double(balance) else {
+        guard !name.isEmpty, let parsedBalance = balance.decimalValue else {
             viewModel.errorMessage = "Please enter a valid name and balance"
             return
         }
 
         // Build just the fields the API expects (id=0 for create)
-        let acc = Account(
+        let editedAccount = Account(
             id: account?.id ?? 0,
             name: name,
-            balance: bal,
+            balance: parsedBalance,
             owner: 0 // will be ignored on create; server uses request.user
         )
 
         Task {
             if account == nil {
-                await viewModel.createAccount(acc)
+                await viewModel.createAccount(editedAccount)
             } else {
-                await viewModel.updateAccount(acc)
+                await viewModel.updateAccount(editedAccount)
             }
             if viewModel.errorMessage == nil {
-                pm.wrappedValue.dismiss()
+                presentationMode.wrappedValue.dismiss()
             }
         }
     }

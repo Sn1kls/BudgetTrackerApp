@@ -2,8 +2,8 @@ import SwiftUI
 
 struct TransactionFormView: View {
     // MARK: - Environment / VM
-    @Environment(\.presentationMode) private var pm
-    @EnvironmentObject          var accountsVM: AccountsViewModel
+    @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject          var accountsViewModel: AccountsViewModel
     @ObservedObject             var viewModel : TransactionsViewModel
     var transaction: Transaction?
 
@@ -23,7 +23,7 @@ struct TransactionFormView: View {
     private var formIsValid: Bool {
         guard
             selectedAccountID != nil,
-            Double(amount) != nil,
+            amount.decimalValue != nil,
             !category.isEmpty
         else { return false }
         return true
@@ -34,13 +34,13 @@ struct TransactionFormView: View {
         NavigationView {
             Form {
                 // Account picker, or a loader while accounts load
-                if accountsVM.accounts.isEmpty {
+                if accountsViewModel.accounts.isEmpty {
                     ProgressView("Loading accounts…")
                         .frame(maxWidth: .infinity, alignment: .center)
                 } else {
                     Picker("Account", selection: $selectedAccountID) {
-                        ForEach(accountsVM.accounts) { acc in
-                            Text(acc.name).tag(Optional(acc.id))   // tag must be Optional to match the selection
+                        ForEach(accountsViewModel.accounts) { account in
+                            Text(account.name).tag(Optional(account.id))   // tag must be Optional to match the selection
                         }
                     }
                 }
@@ -65,7 +65,7 @@ struct TransactionFormView: View {
             .navigationTitle(transaction == nil ? "New Transaction" : "Edit Transaction")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { pm.wrappedValue.dismiss() }
+                    Button("Cancel") { presentationMode.wrappedValue.dismiss() }
                 }
             }
             .alert("Error",
@@ -74,19 +74,19 @@ struct TransactionFormView: View {
                    message:  { Text(viewModel.errorMessage ?? "") })
 
             .onAppear(perform: setupInitialState)
-            .onChange(of: accountsVM.accounts) { _ in setDefaultAccountIfNeeded() }
+            .onChange(of: accountsViewModel.accounts) { _ in setDefaultAccountIfNeeded() }
         }
     }
 
     // MARK: - Helpers
     private func setupInitialState() {
-        if let tx = transaction {
-            selectedAccountID = tx.account
-            type              = tx.type
-            amount            = String(tx.amount)
-            category          = tx.category
-            description       = tx.description
-            date              = tx.date
+        if let editedTransaction = transaction {
+            selectedAccountID = editedTransaction.account
+            type              = editedTransaction.type
+            amount            = String(editedTransaction.amount)
+            category          = editedTransaction.category
+            description       = editedTransaction.description
+            date              = editedTransaction.date
         }
         setDefaultAccountIfNeeded()
     }
@@ -94,40 +94,39 @@ struct TransactionFormView: View {
     /// Falls back to the first account if none is selected
     private func setDefaultAccountIfNeeded() {
         if selectedAccountID == nil {
-            selectedAccountID = accountsVM.accounts.first?.id
+            selectedAccountID = accountsViewModel.accounts.first?.id
         }
     }
 
     private func save() {
         guard
-            let accID = selectedAccountID,
-            let amt   = Double(amount),
+            let accountID = selectedAccountID,
+            let parsedAmount = amount.decimalValue,
             !category.isEmpty
         else {
             viewModel.errorMessage = "All fields are required"
             return
         }
 
-        let tx = Transaction(
+        let savedTransaction = Transaction(
             id:          transaction?.id ?? 0,
             type:        type,
-            amount:      amt,
+            amount:      parsedAmount,
             category:    category,
             description: description,
             date:        date,
-            account:     accID
+            account:     accountID
         )
 
         Task {
-            do {
-                if transaction == nil {
-                    _ = try await viewModel.createTransaction(tx)
-                } else {
-                    _ = try await viewModel.updateTransaction(tx)
-                }
-                pm.wrappedValue.dismiss()
-            } catch {
-                viewModel.errorMessage = error.localizedDescription
+            if transaction == nil {
+                await viewModel.createTransaction(savedTransaction)
+            } else {
+                await viewModel.updateTransaction(savedTransaction)
+            }
+            // Keep the form open on failure so the input is not lost.
+            if viewModel.errorMessage == nil {
+                presentationMode.wrappedValue.dismiss()
             }
         }
     }

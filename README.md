@@ -28,8 +28,10 @@ scoped to the logged-in user. Auth is JWT (`djangorestframework-simplejwt`) with
 refresh-token rotation and a blacklist on logout.
 
 **iOS app.** Views → ViewModels → `NetworkService` (async/await `URLSession`).
-JWT tokens are stored in the Keychain. Screens: login, register, accounts,
-transactions (list, form, detail), analytics and profile.
+JWT tokens are stored in the Keychain. When the access token expires, the app
+refreshes it once and repeats the request; if that fails, it goes back to the login
+screen. Screens: login, register, accounts, transactions (list, form, detail),
+analytics and profile.
 
 ## API
 
@@ -90,7 +92,7 @@ POSTGRES_HOST=localhost POSTGRES_PORT=5433 poetry run pytest
 ## Running the iOS app
 
 Open `ios/BudgetTracker.xcodeproj` in Xcode (iOS 17.2+) and run it on a simulator.
-It talks to `http://localhost:8000/api` by default.
+It talks to `http://localhost:8000/api` by default. Unit tests run with ⌘U.
 
 To use a real iPhone, the API has to be reachable from the phone:
 
@@ -115,11 +117,6 @@ To use a real iPhone, the API has to be reachable from the phone:
   The successful logout and the `period=` shortcuts have no tests yet.
 - **Deployment.** Docker runs Django's development server. A real deployment would
   need gunicorn, static files and production settings.
-- **iOS.** No automatic token refresh after the access token expires. Money is held
-  as `Double` instead of `Decimal`, and amounts typed with a decimal comma
-  (Ukrainian locale) are rejected. The register screen looks for "success" in the
-  server message, which never matches, so it stays open after a successful sign-up.
-  Custom date ranges are sent in UTC, so they can shift by a day. Forms close even
-  when the request fails. The test targets are still Xcode templates.
-  There is some leftover code from the earlier SQLite version: an unused
-  `SQLite.swift` package, `ContentView.swift` and the custom fonts.
+- **iOS.** Money is held as `Double` instead of `Decimal`. The unit tests cover
+  only small helpers (amount parsing, dates, error messages); the view models and
+  networking have no tests, and CI does not build the iOS app.

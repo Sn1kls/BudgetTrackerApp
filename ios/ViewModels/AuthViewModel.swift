@@ -8,10 +8,16 @@ class AuthViewModel: ObservableObject {
 
     private let network = NetworkService.shared
     private let keychain = KeychainManager.shared
+    private var sessionObserver: NSObjectProtocol?
 
     init() {
         // Logged in if a Keychain access token exists
         isAuthenticated = keychain.getAccessToken() != nil
+        sessionObserver = NotificationCenter.default.addObserver(
+            forName: .sessionExpired, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.isAuthenticated = false }
+        }
     }
 
     /// Logs in, stores tokens in Keychain, updates isAuthenticated
@@ -29,20 +35,18 @@ class AuthViewModel: ObservableObject {
         isLoading = false
     }
 
-    /// Registers; surfaces the API message (success or error)
-    func signUp(username: String, email: String, password: String) async {
+    /// Registers; returns false and sets errorMessage on failure
+    func signUp(username: String, email: String, password: String) async -> Bool {
         isLoading = true
         errorMessage = nil
+        defer { isLoading = false }
         do {
-            let response = try await network.register(username: username,
-                                                      email: email,
-                                                      password: password)
-            // Server returns message: String
-            errorMessage = response.message
+            _ = try await network.register(username: username, email: email, password: password)
+            return true
         } catch {
             errorMessage = error.localizedDescription
+            return false
         }
-        isLoading = false
     }
 
     /// Logs out, clears tokens, updates isAuthenticated
