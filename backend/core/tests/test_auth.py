@@ -1,4 +1,5 @@
 import pytest
+from django.contrib.auth.models import User
 
 
 @pytest.mark.django_db
@@ -34,3 +35,27 @@ def test_unknown_host_is_rejected(client, settings):
     settings.ALLOWED_HOSTS = ["localhost"]
     resp = client.get("/swagger/", HTTP_HOST="evil.example")
     assert resp.status_code == 400
+
+
+@pytest.mark.django_db
+def test_register_creates_user(api_client):
+    resp = api_client.post(
+        "/api/register/",
+        {"username": "maria", "email": "maria@example.com", "password": "c0rrect-Horse"},
+        format="json",
+    )
+    assert resp.status_code == 201
+    assert User.objects.get(username="maria").check_password("c0rrect-Horse")
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("password", ["1", "password", "12345678"])
+def test_register_rejects_weak_password(api_client, password):
+    resp = api_client.post(
+        "/api/register/",
+        {"username": "maria", "email": "maria@example.com", "password": password},
+        format="json",
+    )
+    assert resp.status_code == 400
+    assert "password" in resp.json()
+    assert not User.objects.filter(username="maria").exists()
