@@ -1,5 +1,3 @@
-// Services/KeychainManager.swift
-
 import Foundation
 import Security
 
@@ -75,7 +73,7 @@ final class KeychainManager {
         }
     }
 
-    // MARK: — Convenience для токенів
+    // MARK: - Token helpers
 
     func saveAccessToken(_ token: String) {
         try? save(token, forKey: "accessToken")

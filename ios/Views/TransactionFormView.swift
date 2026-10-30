@@ -8,7 +8,7 @@ struct TransactionFormView: View {
     var transaction: Transaction?
 
     // MARK: - Form State
-    @State private var selectedAccountID: Int? = nil          // 👈  nil, поки акаунти не підвантажились
+    @State private var selectedAccountID: Int? = nil
     @State private var type    = "IN"
     @State private var amount  = ""
     @State private var category = ""
@@ -33,19 +33,18 @@ struct TransactionFormView: View {
     var body: some View {
         NavigationView {
             Form {
-                // 1️⃣ Account picker або лоадер
+                // Account picker, or a loader while accounts load
                 if accountsVM.accounts.isEmpty {
                     ProgressView("Loading accounts…")
                         .frame(maxWidth: .infinity, alignment: .center)
                 } else {
                     Picker("Account", selection: $selectedAccountID) {
                         ForEach(accountsVM.accounts) { acc in
-                            Text(acc.name).tag(Optional(acc.id))   // Optional(tag:)
+                            Text(acc.name).tag(Optional(acc.id))   // tag must be Optional to match the selection
                         }
                     }
                 }
 
-                // 2️⃣ Type
                 Picker("Type", selection: $type) {
                     ForEach(types, id: \.self) { code in
                         Text(typeLabels[code] ?? code).tag(code)
@@ -53,7 +52,6 @@ struct TransactionFormView: View {
                 }
                 .pickerStyle(.segmented)
 
-                // 3️⃣ Amount / Category / Description / Date
                 TextField("Amount", text: $amount)
                     .keyboardType(.decimalPad)
 
@@ -61,7 +59,6 @@ struct TransactionFormView: View {
                 TextField("Description", text: $description)
                 DatePicker("Date", selection: $date, displayedComponents: .date)
 
-                // 4️⃣ Save button
                 Button(transaction == nil ? "Add" : "Update") { save() }
                     .disabled(!formIsValid)
             }
@@ -76,7 +73,6 @@ struct TransactionFormView: View {
                    actions: { Button("OK") { viewModel.errorMessage = nil } },
                    message:  { Text(viewModel.errorMessage ?? "") })
 
-            // ⚙️  Ініціалізація стейту
             .onAppear(perform: setupInitialState)
             .onChange(of: accountsVM.accounts) { _ in setDefaultAccountIfNeeded() }
         }
@@ -85,7 +81,6 @@ struct TransactionFormView: View {
     // MARK: - Helpers
     private func setupInitialState() {
         if let tx = transaction {
-            // Режим редагування
             selectedAccountID = tx.account
             type              = tx.type
             amount            = String(tx.amount)
@@ -96,7 +91,7 @@ struct TransactionFormView: View {
         setDefaultAccountIfNeeded()
     }
 
-    /// Якщо акаунт ще не вибрано, підставляємо перший у списку
+    /// Falls back to the first account if none is selected
     private func setDefaultAccountIfNeeded() {
         if selectedAccountID == nil {
             selectedAccountID = accountsVM.accounts.first?.id

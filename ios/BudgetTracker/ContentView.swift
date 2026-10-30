@@ -6,42 +6,38 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            Color.white.edgesIgnoringSafeArea(.all) // Білий фон на весь екран
+            Color.white.edgesIgnoringSafeArea(.all)
 
             if isLoggedIn {
                 HomeView()
             } else {
                 NavigationView {
                     VStack {
-                        Spacer().frame(height: 120) // Менший відступ перед заголовком
+                        Spacer().frame(height: 120)
 
-                        // Заголовок
                         Text("BUDGET TRACKER")
                             .font(.custom("AbhayaLibre-ExtraBold", size: 47))
-                            .foregroundColor(Color(red: 0.27, green: 0.20, blue: 0.18)) // Темно-коричневий
+                            .foregroundColor(Color(red: 0.27, green: 0.20, blue: 0.18))
 
-                        // Підзаголовок
                         Text("WELCOME")
                             .font(.custom("AbhayaLibre-Medium", size: 36))
-                            .foregroundColor(Color(red: 0.7, green: 0.6, blue: 0.5)) // Підзаголовок світліший
+                            .foregroundColor(Color(red: 0.7, green: 0.6, blue: 0.5))
                             .padding(.bottom, 20)
 
-                        Spacer().frame(height: 120) // Підняти кнопку вище
+                        Spacer().frame(height: 120)
 
-                        // Кнопка "Sign Up"
                         NavigationLink(destination: RegisterView()) {
                             Text("Sign up")
                                 .font(.custom("Inconsolata", size: 32))
                                 .foregroundColor(.white)
                                 .frame(width: 239, height: 63)
-                                .background(Color(red: 0.27, green: 0.20, blue: 0.18)) // Темно-коричневий
+                                .background(Color(red: 0.27, green: 0.20, blue: 0.18))
                                 .cornerRadius(20)
                         }
                         .padding(.bottom, 20)
 
                         Spacer()
 
-                        // Текст "Do you have an account?"
                         HStack {
                             Text("Do you have an account?")
                                 .font(.custom("Inconsolata", size: 18))
@@ -54,7 +50,7 @@ struct ContentView: View {
                                     .bold()
                             }
                         }
-                        .padding(.bottom, 30) // Відступ знизу
+                        .padding(.bottom, 30)
                     }
                 }
             }

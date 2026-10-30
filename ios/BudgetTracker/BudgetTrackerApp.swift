@@ -1,14 +1,12 @@
-// frontend/App/BudgetTrackerApp.swift
 import SwiftUI
 
 @main
 struct BudgetTrackerApp: App {
-    // ▸ Головний (спільний) view-model авторизації
     @StateObject private var authVM = AuthViewModel()
 
-    /// Запускається один раз, коли апка піднімається
+    /// Runs once at launch
     init() {
-        // Перехоплюємо всі uncaught exception (Foundation/Obj-C layer)
+        // Catch uncaught Foundation/Obj-C exceptions
         NSSetUncaughtExceptionHandler { exc in
             print("💥 Uncaught exception:", exc)
             print("💥 Stack trace:\n", exc.callStackSymbols.joined(separator: "\n"))
@@ -17,7 +15,7 @@ struct BudgetTrackerApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()                 // ← ваш кореневий SwiftUI контейнер
+            RootView()
                 .environmentObject(authVM)
         }
     }

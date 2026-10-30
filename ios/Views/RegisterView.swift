@@ -38,7 +38,7 @@ struct RegisterView: View {
                         await vm.signUp(username: username,
                                         email: email,
                                         password: password)
-                        // якщо успіх — message містить “success”
+                        // success if the message contains "success"
                         if vm.errorMessage?.lowercased().contains("success") == true {
                             pm.wrappedValue.dismiss()
                         }

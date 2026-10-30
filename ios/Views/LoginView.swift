@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct LoginView: View {
-    @EnvironmentObject var authVM: AuthViewModel   // ← shared VM
+    @EnvironmentObject var authVM: AuthViewModel
     @State private var username = ""
     @State private var password = ""
 

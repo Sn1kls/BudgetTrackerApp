@@ -13,25 +13,23 @@ struct Transaction: Codable, Identifiable {
         case id, type, amount, category, description, account, date
     }
 
-    // Decodable
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
 
         id       = try c.decode(Int.self,    forKey: .id)
         type     = try c.decode(String.self, forKey: .type)
         _amount  = try LosslessDouble(from: c.superDecoder(forKey: .amount))
-        category = try c.decode(String.self, forKey: .category)        // бекенд вже "" а не null
+        category = try c.decode(String.self, forKey: .category)        // backend returns "" rather than null
         description = try c.decode(String.self, forKey: .description)
         account  = try c.decode(Int.self,    forKey: .account)
 
-        // ISO-8601 (з суфіксом Z)
+        // ISO-8601 with a Z suffix
         date = try ISO8601DateFormatter().date(from: c.decode(String.self, forKey: .date))
                ?? { throw DecodingError.dataCorruptedError(
                         forKey: .date, in: c,
                         debugDescription: "Bad ISO-8601") }()
     }
 
-    // Encodable
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(type, forKey: .type)
@@ -42,7 +40,7 @@ struct Transaction: Codable, Identifiable {
         try c.encode(ISO8601DateFormatter().string(from: date), forKey: .date)
     }
 
-    // зручний init для форм
+    // convenience init for forms
     init(id: Int = 0,
          type: String,
          amount: Double,

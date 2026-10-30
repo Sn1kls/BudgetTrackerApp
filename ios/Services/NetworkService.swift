@@ -5,12 +5,12 @@ enum NetworkError: Error {
     case statusCode(Int)
 }
 
-// MARK: - ЄДИНИЙ singleton
+// MARK: - Singleton
 final class NetworkService {
     static let shared = NetworkService()
     private init(session: URLSession = .shared) { self.session = session }
 
-    // ───── Private ─────
+    // MARK: - Private
     private let session: URLSession
     private let decoder: JSONDecoder = {
         let d = JSONDecoder()
@@ -26,7 +26,7 @@ final class NetworkService {
     }()
     private var accessToken: String? { KeychainManager.shared.getAccessToken() }
 
-    // ───── Universal request helper ─────
+    // MARK: - Request helper
     private func request(
         path: String,
         method: String = "GET",
@@ -54,7 +54,7 @@ final class NetworkService {
         return (data, http)
     }
 
-    // ───── Generic decode with raw-dump on error ─────
+    // MARK: - Decoding
     private func decode<T: Decodable>(
         _ type: T.Type,
         from data: Data,
@@ -69,7 +69,7 @@ final class NetworkService {
         }
     }
 
-    // MARK: – Auth
+    // MARK: - Auth
     func login(username: String, password: String) async throws -> TokenObtainPair {
         let body = try JSONSerialization.data(withJSONObject:
                     ["username": username, "password": password])
@@ -115,7 +115,7 @@ final class NetworkService {
         }
     }
 
-    // MARK: – Accounts
+    // MARK: - Accounts
     func fetchAccounts() async throws -> [Account] {
         let (data, resp) = try await request(path: "accounts/", authenticated: true)
         guard (200..<300).contains(resp.statusCode) else {
@@ -151,7 +151,7 @@ final class NetworkService {
         return try decoder.decode(Account.self, from: data)
     }
 
-    // MARK: – Transactions
+    // MARK: - Transactions
     func fetchTransactions() async throws -> [Transaction] {
         let (data, resp) = try await request(path: "transactions/", authenticated: true)
         guard (200..<300).contains(resp.statusCode) else {
@@ -161,10 +161,9 @@ final class NetworkService {
         do {
             return try decoder.decode([Transaction].self, from: data)
         } catch {
-            // 👇 розширений лог
             print("RAW transactions JSON:\n", String(data: data, encoding: .utf8) ?? "<nil>")
             print("DECODE error:", error)
-            throw error   // щоб побачити той самий алерт
+            throw error
         }
     }
 
@@ -209,7 +208,7 @@ final class NetworkService {
         }
     }
 
-    // MARK: – Analytics (старий ендпоїнт)
+    // MARK: - Analytics (legacy endpoint)
     func fetchAnalytics() async throws -> AnalyticsResponse {
             let (data, resp) = try await request(path: "analytics/", authenticated: true)
             guard (200..<300).contains(resp.statusCode) else {
@@ -221,13 +220,12 @@ final class NetworkService {
     }
 
 
-    // MARK: – Analytics Summary (новий ендпоїнт)
-    ///   • period=this_month / this_week  **або**  start+end (YYYY-MM-DD)
+    // MARK: - Analytics summary
+    /// period=this_month / this_week, or start+end (YYYY-MM-DD)
     func fetchSummary(period: String? = "this_month",
                           start: Date? = nil,
                           end: Date? = nil) async throws -> SummaryResponse
         {
-            // — складання URL
             var comps = URLComponents(url: APIConfig.baseURL, resolvingAgainstBaseURL: false)!
             comps.path += "/analytics/summary/"
             if let p = period {

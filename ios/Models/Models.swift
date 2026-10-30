@@ -8,7 +8,7 @@ struct Account: Codable, Identifiable, Equatable, Hashable {
     let balance: Double
     let owner: Int
 
-    // 1️⃣ Add a memberwise init for your forms and view‐models to call
+    // Memberwise init for forms and view models
     init(id: Int = 0,
          name: String,
          balance: Double,
@@ -20,7 +20,7 @@ struct Account: Codable, Identifiable, Equatable, Hashable {
         self.owner = owner
     }
 
-    // 2️⃣ Same CodingKeys + custom decoding as before
+    // Same CodingKeys + custom decoding
     enum CodingKeys: String, CodingKey {
         case id, name, owner, balance
     }
@@ -35,7 +35,7 @@ struct Account: Codable, Identifiable, Equatable, Hashable {
     }
 }
 
-// MARK: - Auth Models (unchanged)
+// MARK: - Auth models
 
 struct TokenObtainPair: Codable {
     let refresh: String

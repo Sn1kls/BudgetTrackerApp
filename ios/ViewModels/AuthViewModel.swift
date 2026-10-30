@@ -10,11 +10,11 @@ class AuthViewModel: ObservableObject {
     private let keychain = KeychainManager.shared
 
     init() {
-        // Якщо в Keychain є access token — вважаємо користувача залогіненим
+        // Logged in if a Keychain access token exists
         isAuthenticated = keychain.getAccessToken() != nil
     }
 
-    /// Логін: запитує токени, зберігає в Keychain, оновлює isAuthenticated
+    /// Logs in, stores tokens in Keychain, updates isAuthenticated
     func signIn(username: String, password: String) async {
         isLoading = true
         errorMessage = nil
@@ -24,13 +24,12 @@ class AuthViewModel: ObservableObject {
             keychain.saveRefreshToken(tokens.refresh)
             isAuthenticated = true
         } catch {
-            // можна деталізувати помилки за типом NetworkError та коду статусу
             errorMessage = error.localizedDescription
         }
         isLoading = false
     }
 
-    /// Реєстрація: показує повідомлення з API (успіх/помилка)
+    /// Registers; surfaces the API message (success or error)
     func signUp(username: String, email: String, password: String) async {
         isLoading = true
         errorMessage = nil
@@ -38,7 +37,7 @@ class AuthViewModel: ObservableObject {
             let response = try await network.register(username: username,
                                                       email: email,
                                                       password: password)
-            // Сервер повертає message: String
+            // Server returns message: String
             errorMessage = response.message
         } catch {
             errorMessage = error.localizedDescription
@@ -46,7 +45,7 @@ class AuthViewModel: ObservableObject {
         isLoading = false
     }
 
-    /// Вихід: відправляє logout, чистить токени, оновлює isAuthenticated
+    /// Logs out, clears tokens, updates isAuthenticated
     func signOut() async {
         isLoading = true
         if let refresh = keychain.getRefreshToken() {

@@ -5,7 +5,7 @@
 
 import Foundation
 
-// MARK: - Помічник
+// MARK: - Helpers
 private func parseDouble(_ str: String) -> Double {
     Double(str) ?? 0
 }
@@ -14,7 +14,7 @@ private func parseDouble(_ str: String) -> Double {
 struct AnalyticsAccount: Codable, Identifiable {
     let id: Int
     let name: String
-    let balance: Double     // ← звичайний Double
+    let balance: Double
 
     enum CodingKeys: String, CodingKey { case id, name, balance }
 
@@ -45,11 +45,11 @@ struct AnalyticsResponse: Codable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
 
-        // accounts  — не критично, якщо нема
+        // accounts are optional
         accounts = (try? c.decode([AnalyticsAccount].self,
                                   forKey: .accounts)) ?? []
 
-        // overall_balance  — рядок або число
+        // overall_balance may be a string or a number
         if let dbl = try? c.decode(Double.self, forKey: .overallBalance) {
             overallBalance = dbl
         } else if let str = try? c.decode(String.self,

@@ -3,7 +3,7 @@ import Foundation
 @MainActor
 final class AnalyticsViewModel: ObservableObject {
 
-    // ----- Published -----
+    // MARK: - Published
     @Published var accounts:       [AnalyticsAccount] = []
     @Published var overallBalance  : Double           = 0
     @Published var recentTx        : [Transaction]    = []
@@ -11,7 +11,6 @@ final class AnalyticsViewModel: ObservableObject {
     @Published var isLoading       : Bool  = false
     @Published var errorMessage    : String?
 
-    // period picker
     @Published var selectedPeriod: SummaryPeriod = .thisMonth
     @Published var customStart   : Date = Calendar.current.date(from:
                                   Calendar.current.dateComponents([.year, .month], from: Date()))!
@@ -32,10 +31,10 @@ final class AnalyticsViewModel: ObservableObject {
         }
     }
 
-    // ----- Private -----
+    // MARK: - Private
     private let network = NetworkService.shared
 
-    // ----- Public API -----
+    // MARK: - Public API
     func fetch() async {
         isLoading = true; defer { isLoading = false }
         errorMessage = nil
@@ -60,12 +59,12 @@ final class AnalyticsViewModel: ObservableObject {
             recentTx       = allTx.sorted(by: { $0.date > $1.date }).prefix(5).map { $0 }
             self.summary   = sumRes
         } catch {
-            errorMessage = error.localizedDescription   // ← показуємо, але тепер у консолі буде точніше
+            errorMessage = error.localizedDescription
         }
     }
 
 
-    // ----- Helpers -----
+    // MARK: - Helpers
     private func fetchSummaryForSelectedPeriod() async throws -> SummaryResponse {
         switch selectedPeriod {
         case .thisMonth: return try await network.fetchSummary(period: "this_month")

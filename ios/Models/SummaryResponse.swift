@@ -11,7 +11,7 @@ struct SummaryResponse: Codable {
     @LosslessDouble var incomeSum:  Double = 0
     @LosslessDouble var expenseSum: Double = 0
     @LosslessDouble var netSum:     Double = 0
-    let currency: String?           // може бути відсутнім
+    let currency: String?           // may be absent
 
     enum CodingKeys: String, CodingKey {
         case incomeSum  = "income_sum"

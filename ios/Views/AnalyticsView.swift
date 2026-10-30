@@ -1,4 +1,3 @@
-// frontend/Views/AnalyticsView.swift
 import SwiftUI
 
 struct AnalyticsView: View {
@@ -6,14 +5,13 @@ struct AnalyticsView: View {
 
     var body: some View {
         NavigationView {
-            VStack {                              // верхня частина: picker + refresh
+            VStack {
                 periodSelector
                 if vm.selectedPeriod == .custom { customDatePickers }
                 Button("Refresh") { Task { await vm.fetch() } }
                     .buttonStyle(.borderedProminent)
                     .padding(.bottom, 8)
 
-                // сам список
                 content
             }
             .navigationTitle("Analytics")
@@ -26,7 +24,7 @@ struct AnalyticsView: View {
         }
     }
 
-    // MARK: – UI blocks
+    // MARK: - UI blocks
     private var periodSelector: some View {
         Picker("Period", selection: $vm.selectedPeriod) {
             ForEach(AnalyticsViewModel.SummaryPeriod.allCases) {
@@ -120,7 +118,6 @@ struct AnalyticsView: View {
         }
     }
 
-    // helper row
     private func summaryRow(_ label: String,
                             _ value: Double,
                             _ color: Color,

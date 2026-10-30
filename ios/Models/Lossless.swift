@@ -1,4 +1,4 @@
-// MARK: - String ↔ Double «без втрат»
+// MARK: - Lossless String/Double
 @propertyWrapper
 struct LosslessDouble: Codable {
     var wrappedValue: Double

@@ -10,7 +10,6 @@ struct TransactionsListView: View {
         NavigationView {
             List {
                 ForEach(txVM.transactions) { tx in
-                    // Стандартний рядок: дві колонки
                     HStack {
                         Text(tx.amount, format: .currency(code: "USD"))
                         Spacer()
@@ -18,11 +17,9 @@ struct TransactionsListView: View {
                             .foregroundColor(.secondary)
                     }
                     .contentShape(Rectangle())
-                    // натискання відкриває форму з передачею tx → редагування
                     .onTapGesture {
                         editingTx = tx
                     }
-                    // свайп-декоратор для видалення
                     .swipeActions(edge: .trailing) {
                         Button(role: .destructive) {
                             Task { await txVM.deleteTransaction(tx) }
@@ -48,12 +45,10 @@ struct TransactionsListView: View {
                     }
                 }
             }
-            // Форма створення (нетранзакція → нова)
             .sheet(isPresented: $showNewForm) {
                 TransactionFormView(viewModel: txVM)
                     .environmentObject(accountsVM)
             }
-            // Форма редагування (якщо editingTx != nil)
             .sheet(item: $editingTx) { tx in
                 TransactionFormView(viewModel: txVM, transaction: tx)
                     .environmentObject(accountsVM)
@@ -71,8 +66,7 @@ struct TransactionsListView: View {
     }
 }
 
-/// Щоб sheet(item:) працював, Transaction має бути Identifiable (у вас воно є)…
-/// І ми додаємо допоміжний пропертіз:
+/// sheet(item:) needs Identifiable, so Transaction conforms to it.
 extension Transaction {
     var typeDisplay: String {
         switch type {
