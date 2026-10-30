@@ -20,11 +20,7 @@
 		FA98A32B2D0F0B1E00019B49 /* BudgetTrackerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA98A32A2D0F0B1E00019B49 /* BudgetTrackerTests.swift */; };
 		FA98A3352D0F0B1E00019B49 /* BudgetTrackerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA98A3342D0F0B1E00019B49 /* BudgetTrackerUITests.swift */; };
 		FA98A3372D0F0B1E00019B49 /* BudgetTrackerUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA98A3362D0F0B1E00019B49 /* BudgetTrackerUITestsLaunchTests.swift */; };
-		FA98A3452D0F0B6300019B49 /* SQLite in Frameworks */ = {isa = PBXBuildFile; productRef = FA98A3442D0F0B6300019B49 /* SQLite */; };
 		FA98A3532D0F1BA700019B49 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA98A3522D0F1BA700019B49 /* Extensions.swift */; };
-		FAB62F022D0F468F003D4B72 /* Inconsolata.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FAB62F002D0F45DF003D4B72 /* Inconsolata.ttf */; };
-		FAB62F032D0F4694003D4B72 /* AbhayaLibre-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FAB62EFC2D0F45D0003D4B72 /* AbhayaLibre-ExtraBold.ttf */; };
-		FAB62F042D0F4696003D4B72 /* AbhayaLibre-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FAB62EFE2D0F45D8003D4B72 /* AbhayaLibre-Medium.ttf */; };
 		FAF1F8D72E0340930079EEA9 /* APIConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAF1F8D62E0340930079EEA9 /* APIConfig.swift */; };
 		FAF1F8D92E0340E90079EEA9 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAF1F8D82E0340E90079EEA9 /* Models.swift */; };
 		FAF1F8DB2E0341760079EEA9 /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAF1F8DA2E0341760079EEA9 /* KeychainManager.swift */; };
@@ -78,10 +74,6 @@
 		FA98A3342D0F0B1E00019B49 /* BudgetTrackerUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetTrackerUITests.swift; sourceTree = "<group>"; };
 		FA98A3362D0F0B1E00019B49 /* BudgetTrackerUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetTrackerUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		FA98A3522D0F1BA700019B49 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
-		FAB62EF22D0F3EF7003D4B72 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		FAB62EFC2D0F45D0003D4B72 /* AbhayaLibre-ExtraBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "AbhayaLibre-ExtraBold.ttf"; sourceTree = "<group>"; };
-		FAB62EFE2D0F45D8003D4B72 /* AbhayaLibre-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "AbhayaLibre-Medium.ttf"; sourceTree = "<group>"; };
-		FAB62F002D0F45DF003D4B72 /* Inconsolata.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Inconsolata.ttf; sourceTree = "<group>"; };
 		FAF1F8D62E0340930079EEA9 /* APIConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIConfig.swift; sourceTree = "<group>"; };
 		FAF1F8D82E0340E90079EEA9 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		FAF1F8DA2E0341760079EEA9 /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
@@ -105,7 +97,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FA98A3452D0F0B6300019B49 /* SQLite in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -130,7 +121,6 @@
 			isa = PBXGroup;
 			children = (
 				FAF1F8DF2E0342210079EEA9 /* ViewModels */,
-				FAB62EF22D0F3EF7003D4B72 /* Info.plist */,
 				FA98A3512D0F1B8100019B49 /* Extensions */,
 				FA98A34C2D0F0C0300019B49 /* Views */,
 				FA98A3472D0F0BB200019B49 /* Services */,
@@ -155,9 +145,6 @@
 		FA98A3182D0F0B1B00019B49 /* BudgetTracker */ = {
 			isa = PBXGroup;
 			children = (
-				FAB62EFC2D0F45D0003D4B72 /* AbhayaLibre-ExtraBold.ttf */,
-				FAB62EFE2D0F45D8003D4B72 /* AbhayaLibre-Medium.ttf */,
-				FAB62F002D0F45DF003D4B72 /* Inconsolata.ttf */,
 				FA98A3192D0F0B1B00019B49 /* BudgetTrackerApp.swift */,
 				FA98A31D2D0F0B1E00019B49 /* Assets.xcassets */,
 				FA98A31F2D0F0B1E00019B49 /* Preview Content */,
@@ -266,7 +253,6 @@
 			);
 			name = BudgetTracker;
 			packageProductDependencies = (
-				FA98A3442D0F0B6300019B49 /* SQLite */,
 			);
 			productName = BudgetTracker;
 			productReference = FA98A3162D0F0B1B00019B49 /* BudgetTracker.app */;
@@ -341,7 +327,6 @@
 			);
 			mainGroup = FA98A30D2D0F0B1B00019B49;
 			packageReferences = (
-				FA98A3432D0F0B6300019B49 /* XCRemoteSwiftPackageReference "SQLite" */,
 			);
 			productRefGroup = FA98A3172D0F0B1B00019B49 /* Products */;
 			projectDirPath = "";
@@ -359,9 +344,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FAB62F042D0F4696003D4B72 /* AbhayaLibre-Medium.ttf in Resources */,
-				FAB62F032D0F4694003D4B72 /* AbhayaLibre-ExtraBold.ttf in Resources */,
-				FAB62F022D0F468F003D4B72 /* Inconsolata.ttf in Resources */,
 				FA98A3212D0F0B1E00019B49 /* Preview Assets.xcassets in Resources */,
 				FA98A31E2D0F0B1E00019B49 /* Assets.xcassets in Resources */,
 			);
@@ -743,24 +725,6 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		FA98A3432D0F0B6300019B49 /* XCRemoteSwiftPackageReference "SQLite" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/stephencelis/SQLite.swift";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.15.3;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		FA98A3442D0F0B6300019B49 /* SQLite */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FA98A3432D0F0B6300019B49 /* XCRemoteSwiftPackageReference "SQLite" */;
-			productName = SQLite;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = FA98A30E2D0F0B1B00019B49 /* Project object */;
 }
