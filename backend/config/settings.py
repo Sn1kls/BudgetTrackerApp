@@ -69,6 +69,8 @@ DATABASES = {
         "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
         "HOST": os.getenv("POSTGRES_HOST", "db"),
         "PORT": os.getenv("POSTGRES_PORT", "5432"),
+        # Save a transaction and its balance update together or not at all.
+        "ATOMIC_REQUESTS": True,
     }
 }
 

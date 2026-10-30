@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import factory
 from django.utils import timezone
 from django.contrib.auth.models import User
@@ -29,7 +31,7 @@ class TransactionFactory(factory.django.DjangoModelFactory):
 
     account = factory.SubFactory(AccountFactory)
     type = Transaction.INCOME
-    amount = "10.00"
+    amount = Decimal("10.00")
     category = "test"
     description = "desc"
     date = factory.LazyFunction(timezone.now)
