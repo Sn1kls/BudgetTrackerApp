@@ -116,6 +116,10 @@ To use a real iPhone, the API has to be reachable from the phone:
 - **Deployment.** Docker runs Django's development server. A real deployment would
   need gunicorn, static files and production settings.
 - **iOS.** No automatic token refresh after the access token expires. Money is held
-  as `Double` instead of `Decimal`. The test targets are still Xcode templates.
+  as `Double` instead of `Decimal`, and amounts typed with a decimal comma
+  (Ukrainian locale) are rejected. The register screen looks for "success" in the
+  server message, which never matches, so it stays open after a successful sign-up.
+  Custom date ranges are sent in UTC, so they can shift by a day. Forms close even
+  when the request fails. The test targets are still Xcode templates.
   There is some leftover code from the earlier SQLite version: an unused
   `SQLite.swift` package, `ContentView.swift` and the custom fonts.
