@@ -1,6 +1,8 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
 from datetime import timezone
+from decimal import Decimal
+
 from .models import Account, Transaction
 
 
@@ -37,7 +39,10 @@ class TransactionSerializer(serializers.ModelSerializer):
 
     # amount — завжди рядок
     amount = serializers.DecimalField(
-        max_digits=12, decimal_places=2, coerce_to_string=True
+        max_digits=12,
+        decimal_places=2,
+        coerce_to_string=True,
+        min_value=Decimal("0.01"),
     )
 
     # optional поля — не null, а порожній рядок

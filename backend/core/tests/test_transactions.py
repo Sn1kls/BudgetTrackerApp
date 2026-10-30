@@ -66,3 +66,18 @@ def test_cannot_move_transaction_to_another_users_account(auth_client, user):
     assert resp.status_code == 400
     tx.refresh_from_db()
     assert tx.account.owner == user
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("amount", ["-50.00", "0.00"])
+def test_amount_must_be_positive(auth_client, user, amount):
+    account = AccountFactory(owner=user, balance="0.00")
+    payload = {
+        "account": account.id,
+        "type": Transaction.EXPENSE,
+        "amount": amount,
+        "date": "2025-06-19T00:00:00Z",
+    }
+    resp = auth_client.post("/api/transactions/", payload, format="json")
+    assert resp.status_code == 400
+    assert "amount" in resp.json()
