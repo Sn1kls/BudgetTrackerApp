@@ -1,26 +1,26 @@
-build:
-	docker-compose build
-
 up:
-	docker-compose up -d
+	docker compose up -d --build
+
+tunnel:
+	docker compose --profile tunnel up -d --build
 
 down:
-	docker-compose down
+	docker compose down
 
-shell:
-	docker-compose exec web sh
-
-makemigrations:
-	docker-compose exec web python manage.py makemigrations
-
-migrate:
-	docker-compose exec web python manage.py migrate
-
-createsuperuser:
-	docker-compose exec web python manage.py createsuperuser
+logs:
+	docker compose logs -f web
 
 test:
-	docker-compose exec web python manage.py test
+	docker compose exec web pytest
 
-django_shell:
-	docker-compose exec web python manage.py shell
+lint:
+	docker compose exec web ruff check .
+	docker compose exec web ruff format --check .
+
+makemigrations:
+	docker compose exec web python manage.py makemigrations
+
+createsuperuser:
+	docker compose exec web python manage.py createsuperuser
+
+.PHONY: up tunnel down logs test lint makemigrations createsuperuser

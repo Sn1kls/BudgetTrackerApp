@@ -1,9 +1,10 @@
+from datetime import UTC
+from decimal import Decimal
+
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
-from datetime import timezone
-from decimal import Decimal
 
 from .models import Account, Transaction
 
@@ -43,7 +44,7 @@ class TransactionSerializer(serializers.ModelSerializer):
     date = serializers.DateTimeField(
         format="%Y-%m-%dT%H:%M:%SZ",
         input_formats=["%Y-%m-%dT%H:%M:%SZ", "iso-8601"],
-        default_timezone=timezone.utc,
+        default_timezone=UTC,
     )
 
     amount = serializers.DecimalField(

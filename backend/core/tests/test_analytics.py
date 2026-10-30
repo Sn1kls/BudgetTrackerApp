@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -8,15 +8,24 @@ from core.tests.factories import AccountFactory, TransactionFactory
 
 
 def at(day, hour=0):
-    return datetime(2025, 6, day, hour, tzinfo=timezone.utc)
+    return datetime(2025, 6, day, hour, tzinfo=UTC)
 
 
 @pytest.mark.django_db
 def test_summary_counts_the_whole_end_day(auth_client, user):
     account = AccountFactory(owner=user)
-    TransactionFactory(account=account, type=Transaction.INCOME, amount=Decimal("100.00"), date=at(1))
-    TransactionFactory(account=account, type=Transaction.EXPENSE, amount=Decimal("30.00"), date=at(19, hour=18))
-    TransactionFactory(account=account, type=Transaction.EXPENSE, amount=Decimal("5.00"), date=at(20))
+    TransactionFactory(
+        account=account, type=Transaction.INCOME, amount=Decimal("100.00"), date=at(1)
+    )
+    TransactionFactory(
+        account=account,
+        type=Transaction.EXPENSE,
+        amount=Decimal("30.00"),
+        date=at(19, hour=18),
+    )
+    TransactionFactory(
+        account=account, type=Transaction.EXPENSE, amount=Decimal("5.00"), date=at(20)
+    )
 
     resp = auth_client.get("/api/analytics/summary/?start=2025-06-01&end=2025-06-19")
 
@@ -63,5 +72,10 @@ def test_summary_by_month(auth_client, user):
 
     by_month = resp.json()["by_month"]
     assert len(by_month) == 12
-    assert by_month[5] == {"month": 6, "income": "40.00", "expense": "0.00", "net": "40.00"}
+    assert by_month[5] == {
+        "month": 6,
+        "income": "40.00",
+        "expense": "0.00",
+        "net": "40.00",
+    }
     assert by_month[6]["income"] == "0.00"

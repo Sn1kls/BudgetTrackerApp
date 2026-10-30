@@ -1,5 +1,7 @@
-import pytest
 from decimal import Decimal
+
+import pytest
+
 from core.models import Account
 from core.tests.factories import AccountFactory, UserFactory
 
@@ -17,7 +19,7 @@ def test_list_accounts(auth_client, user):
 
     assert len(data) == 3
     returned_ids = {a["id"] for a in data}
-    assert set(a.id for a in accounts) == returned_ids
+    assert {a.id for a in accounts} == returned_ids
 
 
 @pytest.mark.django_db

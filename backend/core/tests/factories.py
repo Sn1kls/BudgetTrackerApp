@@ -1,8 +1,9 @@
 from decimal import Decimal
 
 import factory
-from django.utils import timezone
 from django.contrib.auth.models import User
+from django.utils import timezone
+
 from core.models import Account, Transaction
 
 
@@ -13,7 +14,7 @@ class UserFactory(factory.django.DjangoModelFactory):
 
     username = factory.Sequence(lambda n: f"user{n}")
     email = factory.LazyAttribute(lambda o: f"{o.username}@example.com")
-    password = factory.PostGenerationMethodCall("set_password", "pass1234")
+    password = factory.django.Password("pass1234")
 
 
 class AccountFactory(factory.django.DjangoModelFactory):

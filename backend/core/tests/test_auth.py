@@ -41,7 +41,11 @@ def test_unknown_host_is_rejected(client, settings):
 def test_register_creates_user(api_client):
     resp = api_client.post(
         "/api/register/",
-        {"username": "maria", "email": "maria@example.com", "password": "c0rrect-Horse"},
+        {
+            "username": "maria",
+            "email": "maria@example.com",
+            "password": "c0rrect-Horse",
+        },
         format="json",
     )
     assert resp.status_code == 201
