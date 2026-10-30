@@ -20,8 +20,8 @@ class RegisterSerializer(serializers.ModelSerializer):
         user = User(username=attrs["username"], email=attrs.get("email", ""))
         try:
             validate_password(attrs["password"], user)
-        except DjangoValidationError as e:
-            raise serializers.ValidationError({"password": list(e.messages)})
+        except DjangoValidationError as error:
+            raise serializers.ValidationError({"password": list(error.messages)})
         return attrs
 
     def create(self, validated_data):

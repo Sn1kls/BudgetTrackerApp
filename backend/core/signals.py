@@ -5,12 +5,16 @@ from django.dispatch import receiver
 from .models import Account, Transaction
 
 
-def _delta(tx):
-    return tx.amount if tx.type == Transaction.INCOME else -tx.amount
+def balance_change(transaction):
+    return (
+        transaction.amount
+        if transaction.type == Transaction.INCOME
+        else -transaction.amount
+    )
 
 
-def _apply(account_id, delta):
-    Account.objects.filter(pk=account_id).update(balance=F("balance") + delta)
+def add_to_balance(account_id, amount):
+    Account.objects.filter(pk=account_id).update(balance=F("balance") + amount)
 
 
 @receiver(pre_save, sender=Transaction)
@@ -25,10 +29,10 @@ def update_balance_on_save(sender, instance, **kwargs):
     # Undo the old version, then apply the new one.
     previous = getattr(instance, "_previous", None)
     if previous:
-        _apply(previous.account_id, -_delta(previous))
-    _apply(instance.account_id, _delta(instance))
+        add_to_balance(previous.account_id, -balance_change(previous))
+    add_to_balance(instance.account_id, balance_change(instance))
 
 
 @receiver(post_delete, sender=Transaction)
 def update_balance_on_delete(sender, instance, **kwargs):
-    _apply(instance.account_id, -_delta(instance))
+    add_to_balance(instance.account_id, -balance_change(instance))

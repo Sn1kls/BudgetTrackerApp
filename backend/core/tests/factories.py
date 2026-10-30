@@ -12,8 +12,8 @@ class UserFactory(factory.django.DjangoModelFactory):
         model = User
         django_get_or_create = ("username",)
 
-    username = factory.Sequence(lambda n: f"user{n}")
-    email = factory.LazyAttribute(lambda o: f"{o.username}@example.com")
+    username = factory.Sequence(lambda number: f"user{number}")
+    email = factory.LazyAttribute(lambda user: f"{user.username}@example.com")
     password = factory.django.Password("pass1234")
 
 
@@ -22,7 +22,7 @@ class AccountFactory(factory.django.DjangoModelFactory):
         model = Account
 
     owner = factory.SubFactory(UserFactory)
-    name = factory.Sequence(lambda n: f"Account {n}")
+    name = factory.Sequence(lambda number: f"Account {number}")
     balance = "0.00"
 
 

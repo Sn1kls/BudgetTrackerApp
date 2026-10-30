@@ -7,7 +7,7 @@ from core.models import Transaction
 from core.tests.factories import AccountFactory, TransactionFactory
 
 
-def at(day, hour=0):
+def june_2025(day, hour=0):
     return datetime(2025, 6, day, hour, tzinfo=UTC)
 
 
@@ -15,22 +15,30 @@ def at(day, hour=0):
 def test_summary_counts_the_whole_end_day(auth_client, user):
     account = AccountFactory(owner=user)
     TransactionFactory(
-        account=account, type=Transaction.INCOME, amount=Decimal("100.00"), date=at(1)
+        account=account,
+        type=Transaction.INCOME,
+        amount=Decimal("100.00"),
+        date=june_2025(1),
     )
     TransactionFactory(
         account=account,
         type=Transaction.EXPENSE,
         amount=Decimal("30.00"),
-        date=at(19, hour=18),
+        date=june_2025(19, hour=18),
     )
     TransactionFactory(
-        account=account, type=Transaction.EXPENSE, amount=Decimal("5.00"), date=at(20)
+        account=account,
+        type=Transaction.EXPENSE,
+        amount=Decimal("5.00"),
+        date=june_2025(20),
     )
 
-    resp = auth_client.get("/api/analytics/summary/?start=2025-06-01&end=2025-06-19")
+    response = auth_client.get(
+        "/api/analytics/summary/?start=2025-06-01&end=2025-06-19"
+    )
 
-    assert resp.status_code == 200
-    assert resp.json() == {
+    assert response.status_code == 200
+    assert response.json() == {
         "income_sum": "100.00",
         "expense_sum": "30.00",
         "net_sum": "70.00",
@@ -40,11 +48,13 @@ def test_summary_counts_the_whole_end_day(auth_client, user):
 
 @pytest.mark.django_db
 def test_summary_ignores_other_users_transactions(auth_client, user):
-    TransactionFactory(amount=Decimal("50.00"), date=at(5))
+    TransactionFactory(amount=Decimal("50.00"), date=june_2025(5))
 
-    resp = auth_client.get("/api/analytics/summary/?start=2025-06-01&end=2025-06-30")
+    response = auth_client.get(
+        "/api/analytics/summary/?start=2025-06-01&end=2025-06-30"
+    )
 
-    assert resp.json()["income_sum"] == "0.00"
+    assert response.json()["income_sum"] == "0.00"
 
 
 @pytest.mark.django_db
@@ -57,20 +67,22 @@ def test_summary_ignores_other_users_transactions(auth_client, user):
     ],
 )
 def test_summary_rejects_bad_query(auth_client, query):
-    resp = auth_client.get(f"/api/analytics/summary/?{query}")
-    assert resp.status_code == 400
+    response = auth_client.get(f"/api/analytics/summary/?{query}")
+    assert response.status_code == 400
 
 
 @pytest.mark.django_db
 def test_summary_by_month(auth_client, user):
     account = AccountFactory(owner=user)
-    TransactionFactory(account=account, amount=Decimal("40.00"), date=at(30, hour=23))
+    TransactionFactory(
+        account=account, amount=Decimal("40.00"), date=june_2025(30, hour=23)
+    )
 
-    resp = auth_client.get(
+    response = auth_client.get(
         "/api/analytics/summary/?start=2025-06-01&end=2025-06-30&group_by=month"
     )
 
-    by_month = resp.json()["by_month"]
+    by_month = response.json()["by_month"]
     assert len(by_month) == 12
     assert by_month[5] == {
         "month": 6,

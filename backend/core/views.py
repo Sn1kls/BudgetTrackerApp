@@ -68,8 +68,8 @@ class LogoutAPIView(APIView):
             token = RefreshToken(refresh_token)
             token.blacklist()
             return Response({"message": "Logged out"}, status=205)
-        except TokenError as e:
-            return Response({"error": str(e)}, status=400)
+        except TokenError as error:
+            return Response({"error": str(error)}, status=400)
 
 
 class AccountViewSet(viewsets.ModelViewSet):
@@ -96,11 +96,25 @@ class TransactionViewSet(viewsets.ModelViewSet):
 @api_view(["GET"])
 def analytics(request):
     """Accounts of the current user with their balances, plus the overall balance."""
-    user = request.user
-    qs = Account.objects.filter(owner=user)
-    accounts = [{"id": a.id, "name": a.name, "balance": str(a.balance)} for a in qs]
-    overall = sum(a.balance for a in qs)
-    return Response({"accounts": accounts, "overall_balance": str(overall)})
+    accounts = Account.objects.filter(owner=request.user)
+    return Response(
+        {
+            "accounts": [
+                {
+                    "id": account.id,
+                    "name": account.name,
+                    "balance": str(account.balance),
+                }
+                for account in accounts
+            ],
+            "overall_balance": str(sum(account.balance for account in accounts)),
+        }
+    )
+
+
+def total_amount(transactions, transaction_type):
+    totals = transactions.filter(type=transaction_type).aggregate(total=Sum("amount"))
+    return totals["total"] or 0
 
 
 @api_view(["GET"])
@@ -111,7 +125,7 @@ def analytics_summary(request):
     ?start=YYYY-MM-DD&end=YYYY-MM-DD or ?period=this_month|this_week,
     optionally &account_id=<id>&group_by=month.
     """
-    qs = Transaction.objects.filter(account__owner=request.user)
+    transactions = Transaction.objects.filter(account__owner=request.user)
 
     start = request.query_params.get("start")
     end = request.query_params.get("end")
@@ -148,16 +162,12 @@ def analytics_summary(request):
         )
 
     # Filter by the user-set date, not the creation timestamp. Both ends are inclusive.
-    qs = qs.filter(date__date__range=(start_date, end_date))
     if account_id:
-        qs = qs.filter(account_id=account_id)
+        transactions = transactions.filter(account_id=account_id)
+    in_range = transactions.filter(date__date__range=(start_date, end_date))
 
-    total_income = (
-        qs.filter(type=Transaction.INCOME).aggregate(Sum("amount"))["amount__sum"] or 0
-    )
-    total_expense = (
-        qs.filter(type=Transaction.EXPENSE).aggregate(Sum("amount"))["amount__sum"] or 0
-    )
+    total_income = total_amount(in_range, Transaction.INCOME)
+    total_expense = total_amount(in_range, Transaction.EXPENSE)
     net = total_income - total_expense
 
     result = {
@@ -168,34 +178,21 @@ def analytics_summary(request):
     }
 
     if group_by == "month":
-        details = []
-        year = start_date.year
-        for m in range(1, 13):
-            subqs = Transaction.objects.filter(
-                account__owner=request.user, date__year=year, date__month=m
+        by_month = []
+        for month in range(1, 13):
+            in_month = transactions.filter(
+                date__year=start_date.year, date__month=month
             )
-            if account_id:
-                subqs = subqs.filter(account_id=account_id)
-            inc = (
-                subqs.filter(type=Transaction.INCOME).aggregate(Sum("amount"))[
-                    "amount__sum"
-                ]
-                or 0
-            )
-            exp = (
-                subqs.filter(type=Transaction.EXPENSE).aggregate(Sum("amount"))[
-                    "amount__sum"
-                ]
-                or 0
-            )
-            details.append(
+            income = total_amount(in_month, Transaction.INCOME)
+            expense = total_amount(in_month, Transaction.EXPENSE)
+            by_month.append(
                 {
-                    "month": m,
-                    "income": f"{inc:.2f}",
-                    "expense": f"{exp:.2f}",
-                    "net": f"{(inc - exp):.2f}",
+                    "month": month,
+                    "income": f"{income:.2f}",
+                    "expense": f"{expense:.2f}",
+                    "net": f"{(income - expense):.2f}",
                 }
             )
-        result["by_month"] = details
+        result["by_month"] = by_month
 
     return Response(result)
