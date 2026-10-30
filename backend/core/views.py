@@ -164,10 +164,12 @@ def analytics_summary(request):
     # Filter by the user-set date, not the creation timestamp. Both ends are inclusive.
     if account_id:
         transactions = transactions.filter(account_id=account_id)
-    in_range = transactions.filter(date__date__range=(start_date, end_date))
+    transactions_in_range = transactions.filter(
+        date__date__range=(start_date, end_date)
+    )
 
-    total_income = total_amount(in_range, Transaction.INCOME)
-    total_expense = total_amount(in_range, Transaction.EXPENSE)
+    total_income = total_amount(transactions_in_range, Transaction.INCOME)
+    total_expense = total_amount(transactions_in_range, Transaction.EXPENSE)
     net = total_income - total_expense
 
     result = {
@@ -180,11 +182,11 @@ def analytics_summary(request):
     if group_by == "month":
         by_month = []
         for month in range(1, 13):
-            in_month = transactions.filter(
+            transactions_in_month = transactions.filter(
                 date__year=start_date.year, date__month=month
             )
-            income = total_amount(in_month, Transaction.INCOME)
-            expense = total_amount(in_month, Transaction.EXPENSE)
+            income = total_amount(transactions_in_month, Transaction.INCOME)
+            expense = total_amount(transactions_in_month, Transaction.EXPENSE)
             by_month.append(
                 {
                     "month": month,
