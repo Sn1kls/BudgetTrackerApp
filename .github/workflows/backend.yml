@@ -1,0 +1,48 @@
+name: Backend
+
+on:
+  push:
+    paths: ["backend/**", ".github/workflows/backend.yml"]
+  pull_request:
+    paths: ["backend/**", ".github/workflows/backend.yml"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: budget_tracker
+          POSTGRES_USER: budget
+          POSTGRES_PASSWORD: ci-only
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-retries 15
+
+    env:
+      DJANGO_SECRET_KEY: ci-only-not-a-secret
+      POSTGRES_DB: budget_tracker
+      POSTGRES_USER: budget
+      POSTGRES_PASSWORD: ci-only
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: pipx install poetry
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: poetry
+          cache-dependency-path: backend/poetry.lock
+      - run: poetry install --no-root
+      - run: poetry run ruff check .
+      - run: poetry run ruff format --check .
+      - run: poetry run pytest --cov=core --cov-report=term
