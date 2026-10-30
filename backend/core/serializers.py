@@ -57,3 +57,8 @@ class TransactionSerializer(serializers.ModelSerializer):
             "timestamp",
         ]
         read_only_fields = ("timestamp",)
+
+    def validate_account(self, account):
+        if account.owner != self.context["request"].user:
+            raise serializers.ValidationError("Account not found.")
+        return account
