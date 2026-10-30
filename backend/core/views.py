@@ -3,14 +3,9 @@ from calendar import monthrange
 
 from django.db.models import Sum
 from rest_framework import viewsets, permissions, status
-from rest_framework.decorators import (
-    api_view,
-    permission_classes,
-    authentication_classes,
-)
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from rest_framework_simplejwt.views import TokenObtainPairView
 from drf_yasg.utils import swagger_auto_schema
@@ -25,24 +20,22 @@ from .serializers import (
 
 
 class LoginAPIView(TokenObtainPairView):
-    """
-    POST /api/login/ — будь-хто може запросити пару токенів
-    """
-
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
 
 
 class RegisterAPIView(APIView):
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+
     @swagger_auto_schema(
         request_body=RegisterSerializer,
         responses={201: openapi.Response("User created"), 400: "Validation Error"},
     )
     def post(self, request):
-        permission_classes = [permissions.AllowAny]
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
-            user = serializer.save()
+            serializer.save()
             return Response(
                 {"message": "User created!"}, status=status.HTTP_201_CREATED
             )
@@ -50,7 +43,6 @@ class RegisterAPIView(APIView):
 
 
 class LogoutAPIView(APIView):
-
     @swagger_auto_schema(
         operation_description="Logout user by blacklisting their refresh token.",
         request_body=openapi.Schema(
@@ -83,8 +75,6 @@ class LogoutAPIView(APIView):
 
 class AccountViewSet(viewsets.ModelViewSet):
     serializer_class = AccountSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    authentication_classes = [JWTAuthentication]
 
     def get_queryset(self):
         return Account.objects.filter(owner=self.request.user)
@@ -95,32 +85,14 @@ class AccountViewSet(viewsets.ModelViewSet):
 
 class TransactionViewSet(viewsets.ModelViewSet):
     serializer_class = TransactionSerializer
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         return Transaction.objects.filter(account__owner=self.request.user)
 
-    def create(self, request, *args, **kwargs):
-        print("💥 TRANSACTION.CREATE request.data:", request.data)
-
-        serializer = self.get_serializer(data=request.data)
-        if not serializer.is_valid():
-            print("💥 TRANSACTION.CREATE serializer.errors:", serializer.errors)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        return super().create(request, *args, **kwargs)
-
 
 @api_view(["GET"])
-@authentication_classes([JWTAuthentication])
-@permission_classes([permissions.IsAuthenticated])
 def analytics(request):
-    """
-    Повертає для поточного користувача
-      - список рахунків з їх id, name і balance
-      - загальний баланс (сума по всіх рахунках)
-    """
+    """Accounts of the current user with their balances, plus the overall balance."""
     user = request.user
     qs = Account.objects.filter(owner=user)
     accounts = [{"id": a.id, "name": a.name, "balance": str(a.balance)} for a in qs]
@@ -129,24 +101,21 @@ def analytics(request):
 
 
 @api_view(["GET"])
-@authentication_classes([JWTAuthentication])
-@permission_classes([permissions.IsAuthenticated])
 def analytics_summary(request):
     """
-    GET /api/analytics/summary/?start=YYYY-MM-DD&end=YYYY-MM-DD
-    або ?period=this_month|this_week
-    Опційно: &account_id=<id>&group_by=month
+    Income, expense and net for a date range.
+
+    ?start=YYYY-MM-DD&end=YYYY-MM-DD or ?period=this_month|this_week,
+    optionally &account_id=<id>&group_by=month.
     """
     qs = Transaction.objects.filter(account__owner=request.user)
 
-    # --- Парсимо date-range або period ---
     start = request.query_params.get("start")
     end = request.query_params.get("end")
     period = request.query_params.get("period")
     account_id = request.query_params.get("account_id")
     group_by = request.query_params.get("group_by")
 
-    # shorthand
     if period == "this_month":
         today = date.today()
         start = today.replace(day=1).isoformat()
@@ -170,12 +139,11 @@ def analytics_summary(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    # Фільтруємо по date (а не timestamp!)
+    # Filter by the user-set date, not the creation timestamp.
     qs = qs.filter(date__gte=dt_start, date__lte=dt_end)
     if account_id:
         qs = qs.filter(account_id=account_id)
 
-    # Агрегація
     total_income = (
         qs.filter(type=Transaction.INCOME).aggregate(Sum("amount"))["amount__sum"] or 0
     )
@@ -191,7 +159,6 @@ def analytics_summary(request):
         "currency": "USD",
     }
 
-    # Деталізація по місяцях
     if group_by == "month":
         details = []
         year = dt_start.year
