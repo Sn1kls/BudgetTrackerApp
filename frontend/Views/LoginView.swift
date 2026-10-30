@@ -1,84 +1,61 @@
 import SwiftUI
 
 struct LoginView: View {
-    @State private var email: String = ""
-    @State private var password: String = ""
-    @State private var loginError: String = ""
-    @Environment(\.presentationMode) var presentationMode
-    @State private var isLoggedIn = false
-    @State private var userEmail: String = ""
+    @EnvironmentObject var authVM: AuthViewModel   // ← shared VM
+    @State private var username = ""
+    @State private var password = ""
 
     var body: some View {
-        ZStack {
-            Color.white.edgesIgnoringSafeArea(.all)
-
+        NavigationView {
             VStack(spacing: 20) {
-                Spacer().frame(height: 50)
-
                 Text("Welcome Back")
-                    .font(.custom("AbhayaLibre-ExtraBold", size: 36))
-                    .foregroundColor(Color(red: 0.27, green: 0.20, blue: 0.18))
+                    .font(.largeTitle).bold()
+                    .padding(.top, 40)
 
-                TextField("Email", text: $email)
-                    .padding()
-                    .background(Color(red: 0.95, green: 0.95, blue: 0.95))
-                    .cornerRadius(10)
-                    .frame(width: 300)
+                TextField("Username", text: $username)
+                    .textFieldStyle(.roundedBorder)
                     .autocapitalization(.none)
+                    .padding(.horizontal)
 
                 SecureField("Password", text: $password)
-                    .padding()
-                    .background(Color(red: 0.95, green: 0.95, blue: 0.95))
-                    .cornerRadius(10)
-                    .frame(width: 300)
+                    .textFieldStyle(.roundedBorder)
+                    .padding(.horizontal)
 
-                if !loginError.isEmpty {
-                    Text(loginError)
+                if authVM.isLoading {
+                    ProgressView().padding()
+                }
+
+                Button("Login") {
+                    Task {
+                        await authVM.signIn(
+                            username: username,
+                            password: password
+                        )
+                    }
+                }
+                .disabled(authVM.isLoading)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.accentColor)
+                .foregroundColor(.white)
+                .cornerRadius(8)
+                .padding(.horizontal)
+
+                if let err = authVM.errorMessage {
+                    Text(err)
                         .foregroundColor(.red)
-                        .font(.caption)
-                        .padding(.top, 5)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
                 }
-
-                Button(action: loginUser) {
-                    Text("Login")
-                        .font(.custom("Inconsolata", size: 28))
-                        .foregroundColor(.white)
-                        .frame(width: 239, height: 63)
-                        .background(Color(red: 0.27, green: 0.20, blue: 0.18))
-                        .cornerRadius(20)
-                }
-                .padding(.top, 10)
 
                 Spacer()
 
-                NavigationLink(destination: RegisterView()) {
-                    Text("Don't have an account? Sign up")
-                        .font(.custom("Inconsolata", size: 16))
-                        .foregroundColor(.gray)
+                NavigationLink("Don't have an account? Sign up") {
+                    RegisterView()
                 }
                 .padding(.bottom, 20)
             }
-            .navigationBarBackButtonHidden(isLoggedIn)
-            .background(
-                NavigationLink(
-                    destination: HomeView(userEmail: userEmail),
-                    isActive: $isLoggedIn
-                ) { EmptyView() }
-            )
-        }
-    }
-
-    private func loginUser() {
-        do {
-            if let user = try DatabaseManager.shared.authenticateUser(email: email, password: password) {
-                UserDefaults.standard.set(user.id, forKey: "loggedInUserID")
-                userEmail = user.email
-                isLoggedIn = true
-            } else {
-                loginError = "Invalid email or password"
-            }
-        } catch {
-            loginError = "An error occurred while logging in"
+            .navigationTitle("Login")
         }
     }
 }

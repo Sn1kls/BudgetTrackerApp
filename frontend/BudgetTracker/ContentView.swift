@@ -9,7 +9,7 @@ struct ContentView: View {
             Color.white.edgesIgnoringSafeArea(.all) // Білий фон на весь екран
 
             if isLoggedIn {
-                HomeView(userEmail: userEmail)
+                HomeView()
             } else {
                 NavigationView {
                     VStack {
